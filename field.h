@@ -16,22 +16,22 @@ using std::string;
 #include "soil.h"
 #include <iostream>
 using std::ostream;
+#include <functional>
+using std::function;
 
 class Field {
     public:
         Field();
         Field(std::string fieldname, int length, int width);
         void setSoil(const Soil& soil, int startlength, int endlength, int startwidth, int endwidth);
-        void setSoilType(Soil::SoilType soilType, int startlength, int endlength, int startwidth, int endwidth);
-        void setPlants(bool plants, int startlength, int endlength, int startwidth, int endwidth);
-        void setSoilMoisture(int soilMoisture, int startlength, int endlength, int startwidth, int endwidth);
-        void setAirTemperature(float airTemperature, int startlength, int endlength, int startwidth, int endwidth);
-        void setAirHumidity(int airHumidity, int startlength, int endlength, int startwidth, int endwidth);
+        void modifySoilProperty(int startlength, int endlength, int startwidth, int endwidth, std::function<void(Soil&)> modifyFunc);
         void changeFieldname(std::string fieldname);
-        void changeDimensions(int length, int width);
+        void changeDimensions(int lengthchange, int widthchange);
         std::string getFieldname() const {return fieldname_;}
+        int getLength() const {return length_;}
+        int getWidth() const {return width_;}
         vector<vector<Soil::SoilType>> getSoilTypes(int startlength, int endlength, int startwidth, int endwidth) const;
-
+        vector<vector<bool>> getPlants(int startlength, int endlength, int startwidth, int endwidth) const;
 
 
 
@@ -40,6 +40,9 @@ class Field {
         int length_;
         int width_;
         std::vector<std::vector<Soil>> field_;
+        bool CheckBoundaries(int startlength, int endlength, int startwidth, int endwidth) const;
+        void calculateNewDimensions(int lengthChange, int widthChange, int& newLength, int& newWidth) const;
+        void resizeField(int newlength, int newwidth);
 
 };
 std::ostream& operator<<(std::ostream& os, const Field& field);
