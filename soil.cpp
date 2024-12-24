@@ -1,6 +1,8 @@
 #include <iostream>
+#include <string>
 using std::cerr;
 using std::endl;
+using std::string;
 
 
 
@@ -73,6 +75,11 @@ Soil::Soil(SoilType soilType, bool plants, int soilMoisture, float airTemperatur
     void Soil::setSoilMoisture(int soilMoisture)
     {
         soilmoisture_ = soilMoisture;
+        if (!ValidHumidity()) 
+            {
+                std::cerr << "Invalid humidity or moisture value. Humidity and moisture must be between 0 and 100." << std::endl;
+                exit(EXIT_FAILURE);
+            }
         soiltemperature_ = calculateSoilTemperature();
     }
 
@@ -85,6 +92,29 @@ Soil::Soil(SoilType soilType, bool plants, int soilMoisture, float airTemperatur
     void Soil::setAirHumidity(int airHumidity)
     {
         airhumidity_ = airHumidity;
+        if (!ValidHumidity()) 
+            {
+                std::cerr << "Invalid humidity or moisture value. Humidity and moisture must be between 0 and 100." << std::endl;
+                exit(EXIT_FAILURE);
+
+            }
         soiltemperature_ = calculateSoilTemperature();
     }
 
+    std::string Soil::soilTypeToString(SoilType soilType)
+    {
+        switch(soilType)
+        {
+            case SoilType::clay:
+                return "Clay";
+            case SoilType::sand:
+                return "Sand";
+            case SoilType::loam:
+                return "Loam";
+            case SoilType::silt:
+                return "Silt";
+            default:
+                cerr << "Invalid soil type." << endl;
+                exit(EXIT_FAILURE);
+        }
+    }
