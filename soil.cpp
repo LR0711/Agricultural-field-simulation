@@ -4,6 +4,8 @@ using std::cerr;
 using std::endl;
 using std::string;
 
+#include "sensor.h"
+
 
 
 #include "soil.h"
@@ -100,6 +102,37 @@ Soil::Soil(SoilType soilType, bool plants, int soilMoisture, float airTemperatur
             }
         soiltemperature_ = calculateSoilTemperature();
     }
+
+    float Soil::PassTemperatureToSensor(Sensor::SensorType sensorType) const {
+        if (sensorType == Sensor::SensorType::SoilTemperatureSensor) {
+            return getSoilTemperature();
+        } else if (sensorType == Sensor::SensorType::AirTemperatureSensor) {
+            return getAirTemperature();
+        } else {
+            cerr << "Invalid sensor type." << endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    int Soil::PassSoilMoistureToSensor(Sensor::SensorType sensorType) const {
+        if (sensorType == Sensor::SensorType::MoistureSensor) {
+            return getSoilMoisture();
+        } else {
+            cerr << "Invalid sensor type." << endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    int Soil::PassAirHumidityToSensor(Sensor::SensorType sensorType) const {
+        if (sensorType == Sensor::SensorType::HumiditySensor) {
+            return getAirHumidity();
+        } else {
+            cerr << "Invalid sensor type." << endl;
+            exit(EXIT_FAILURE);
+        }
+    }
+
+
 
     std::string Soil::soilTypeToString(SoilType soilType)
     {
