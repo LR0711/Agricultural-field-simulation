@@ -25,12 +25,10 @@ class Soil {
         SoilType getSoilType() const {return soiltype_;}
         bool getPlants() const {return plants_;}
         static std::string soilTypeToString(SoilType soilType);
-        float getTemperatureForSensor(const Sensor& sensor) const;
-        int getMoistureForSensor(const Sensor& sensor) const;
-        int getHumidityForSensor(const Sensor& sensor) const;
-        
-
-
+        float PassTemperatureToSensor(Sensor::SensorType sensorType) const;
+        int PassSoilMoistureToSensor(Sensor::SensorType sensorType) const;
+        int PassAirHumidityToSensor(Sensor::SensorType sensorType) const;
+    
 
     private:
         SoilType soiltype_;
@@ -41,5 +39,10 @@ class Soil {
         float soiltemperature_;
         float calculateSoilTemperature();
         bool ValidHumidity () const;
+        float getAirTemperature() const {return airtemperature_;}
+        float getSoilTemperature() const {return soiltemperature_;}
+        int getAirHumidity() const {return airhumidity_;}
+        int getSoilMoisture() const {return soilmoisture_;}
     };
+
 #endif
