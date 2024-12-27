@@ -17,12 +17,13 @@
 
 class Sensor {
     public:
-        enum class SensorType {MoistureSensor, TemperatureSensor, HumiditySensor, PlantHealthSensor};
+        enum class SensorType {MoistureSensor, SoilTemperatureSensor, HumiditySensor, AirTemperatureSensor, PlantHealthSensor};
         Sensor();
         Sensor(SensorType type);
         float readTemperature(const Soil& soil) const;
         int readMoisture(const Soil& soil) const;
         int readHumidity(const Soil& soil) const;
+        SensorType getType() const { return sensortype_; }
         void sendDatas();
         
     private:
