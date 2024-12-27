@@ -30,6 +30,7 @@ class Field {
         std::string getFieldname() const {return fieldname_;}
         int getLength() const {return length_;}
         int getWidth() const {return width_;}
+        bool getSoil(int x, int y, Soil& soil) const;
         vector<vector<Soil::SoilType>> getSoilTypes(int startlength, int endlength, int startwidth, int endwidth) const;
         vector<vector<bool>> getPlants(int startlength, int endlength, int startwidth, int endwidth) const;
 
