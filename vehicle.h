@@ -24,14 +24,9 @@ class Vehicle {
         enum class VehicleType {FieldVehicle, AerialVehicle};
         Vehicle();
         Vehicle(string name, VehicleType type, int x, int y, float speed, float battery, std::vector<Sensor> sensors, const Field& field);
-        void move(int x, int y);
-
-
-
-
-
-
-
+        void setPosition(int x, int y);
+        void moveToTarget(int targetx, int targety);
+        void readDataFromCurrentCell() const;
 
 
     private:
