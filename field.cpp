@@ -132,6 +132,19 @@ vector<vector<Soil::SoilType>> Field::getSoilTypes(int startlength, int endlengt
     return soilTypes;
 }
 
+bool Field::getSoil(int x, int y, Soil& soil) const
+{
+    if (x < 0 || x >= length_ || y < 0 || y >= width_) {
+        return false;
+    }
+    auto row = field_.begin() + x;
+    auto col = (*row).begin() + y;
+    soil = *col;
+    return true;
+    
+}
+
+
 std::ostream& operator<<(std::ostream& os, const Field& field)
 {
     os << "Field name: " << field.getFieldname() << std::endl
