@@ -62,18 +62,22 @@ void Field::changeDimensions(int lengthChange, int widthChange)
     int oldLength {length_};
     int oldWidth  {width_};
     resizeField(newLength, newWidth);
+    length_ = newLength;
+    width_ = newWidth;
     if (newLength > oldLength) {
         setSoil(Soil(), oldLength, newLength - 1, 0, newWidth - 1);
     }
     if (newWidth > oldWidth) {
         setSoil(Soil(), 0, newLength - 1, oldWidth, newWidth - 1);
     }
-    length_ = newLength;
-    width_ = newWidth;
+    
 }
 
 bool Field::CheckBoundaries(int startlength, int endlength, int startwidth, int endwidth) const
     {
+        std::cout << "Checking boundaries: startlength=" << startlength << ", endlength=" << endlength
+              << ", startwidth=" << startwidth << ", endwidth=" << endwidth << std::endl;
+        std::cout << "Field dimensions: length=" << length_ << ", width=" << width_ << std::endl;
         if (startlength < 0 || startlength >= length_ || endlength < 0 || endlength >= length_ || startwidth < 0 || startwidth >= width_ || endwidth < 0 || endwidth >= width_) {
             return false;
         }
@@ -144,9 +148,29 @@ bool Field::getSoil(int x, int y, Soil& soil) const
     
 }
 
+void Field::printSoilTypes() const
+{
+    for (auto row = field_.begin(); row != field_.end(); ++row) {
+        for (auto col = (*row).begin(); col != (*row).end(); ++col) {
+            std::cout << Soil::soilTypeToString((*col).getSoilType()) << " ";
+        }
+        std::cout << std::endl;
+    }
+}
+
+void Field::printPlantPresence() const
+{
+    for (auto row = field_.begin(); row != field_.end(); ++row) {
+        for (auto col = (*row).begin(); col != (*row).end(); ++col) {
+            std::cout << ((*col).getPlants() ? "P " : "x ");
+        }
+        std::cout << std::endl;
+    }
+}
 
 std::ostream& operator<<(std::ostream& os, const Field& field)
 {
     os << "Field name: " << field.getFieldname() << std::endl
        << "Field dimensions: " << field.getLength() << "x" << field.getWidth() << std::endl;
+    return os;
 }
