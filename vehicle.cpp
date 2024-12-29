@@ -15,7 +15,7 @@ Vehicle::Vehicle()
     field_{Field()}
     {}
 
-Vehicle::Vehicle(string name, VehicleType type, int x, int y, float speed, float battery, std::vector<Sensor> sensors, const Field& field)
+Vehicle::Vehicle(string name, VehicleType type, int x, int y, double speed, float battery, std::vector<Sensor> sensors, const Field& field)
     :name_{name},
     type_{type},
     x_{x},
@@ -24,7 +24,17 @@ Vehicle::Vehicle(string name, VehicleType type, int x, int y, float speed, float
     battery_{battery},
     sensors_{sensors},
     field_{field}
-    {}
+    {
+        if (x < 0 || x >= field_.getLength() || y < 0 || y >= field_.getWidth()) {
+            std::cerr << "Invalid coordinates: vehicle is out of field." << std::endl;
+            exit(EXIT_FAILURE);
+        }
+
+        if (speed <= 0) {
+            std::cerr << "Invalid speed: speed must be greater than 0." << std::endl;
+            exit(EXIT_FAILURE);
+        }
+    }
 
 void Vehicle::setPosition(int x, int y) {
     if (x < 0 || x >= field_.getLength() || y < 0 || y >= field_.getWidth()) {
@@ -33,6 +43,8 @@ void Vehicle::setPosition(int x, int y) {
     }
     x_ = x;
     y_ = y;
+
+    std::cout << "Vehicle " << name_ << " moved to position (" << x_ << ", " << y_ << ")" << std::endl;
 }
 
 void Vehicle::moveToTarget(int targetx, int targety) {
@@ -41,7 +53,7 @@ void Vehicle::moveToTarget(int targetx, int targety) {
         exit(EXIT_FAILURE);
     }
     
-    float steptime {1.0 / speed_};
+    double steptime {1.0 / speed_};
     while (x_ != targetx || y_ != targety) {
         if (x_ < targetx) {
             x_++;
@@ -55,10 +67,12 @@ void Vehicle::moveToTarget(int targetx, int targety) {
             y_--;
         }
 
+        std::cout << "Vehicle " << name_ << " moved to position (" << x_ << ", " << y_ << ")" << std::endl;
         std::this_thread::sleep_for(std::chrono::duration<float>(steptime));
         
     
     }
+    std::cout << "Vehicle " << name_ << " reached target at position (" << x_ << ", " << y_ << ")" << std::endl;
 }
 
 void Vehicle::readDataFromCurrentCell() const {
@@ -85,4 +99,21 @@ void Vehicle::readDataFromCurrentCell() const {
                 std::cerr << "Unknown sensor type" << std::endl;
         }
     }   
+}
+
+std::string Vehicle::vehicleTypeToString(VehicleType type) const {
+    switch (type) {
+        case VehicleType::FieldVehicle:
+            return "Field Vehicle ";
+        case VehicleType::AerialVehicle:
+            return "Aerial Vehicle ";
+        default:
+            return "Unknown Vehicle Type ";
+    }
+}
+
+std::ostream& operator<<(std::ostream& os, const Vehicle& vehicle) {
+    os << vehicle.getName() << "currently at position (" << vehicle.getX() << ", " << vehicle.getY() << ")" << std::endl;
+    return os;
+        
 }
