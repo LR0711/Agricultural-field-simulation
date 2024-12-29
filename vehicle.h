@@ -17,16 +17,26 @@ using std::string;
 using std::vector;
 #include "sensor.h"
 #include "field.h"
+#include <iostream>
+using std::ostream;
+
 
 
 class Vehicle {
     public:
         enum class VehicleType {FieldVehicle, AerialVehicle};
         Vehicle();
-        Vehicle(string name, VehicleType type, int x, int y, float speed, float battery, std::vector<Sensor> sensors, const Field& field);
+        Vehicle(string name, VehicleType type, int x, int y, double speed, float battery, std::vector<Sensor> sensors, const Field& field);
         void setPosition(int x, int y);
         void moveToTarget(int targetx, int targety);
         void readDataFromCurrentCell() const;
+        std::string getName() const {return name_;}
+        VehicleType getType() const {return type_;}
+        int getX() const {return x_;}
+        int getY() const {return y_;}
+        double getSpeed() const {return speed_;}
+        std::string vehicleTypeToString(VehicleType type) const;
+
 
 
     private:
@@ -34,13 +44,15 @@ class Vehicle {
         VehicleType type_;
         int x_;
         int y_;
-        float speed_;
+        double speed_;
         float battery_;
         std::vector<Sensor> sensors_;
         const Field& field_;
         
         
 };
+
+std::ostream& operator<<(std::ostream& os, const Vehicle& vehicle);
 
 
 
