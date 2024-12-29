@@ -11,8 +11,8 @@
 
 #ifndef SENSOR_H
 #define SENSOR_H
-#include "soil.h"
 
+class Soil;
 
 
 class Sensor {
