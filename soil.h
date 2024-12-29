@@ -9,7 +9,9 @@
 #ifndef SOIL_H
 #define SOIL_H
 #include <string>
+
 #include "sensor.h"
+using SensorType = Sensor::SensorType;
 
 
 class Soil {
@@ -25,9 +27,9 @@ class Soil {
         SoilType getSoilType() const {return soiltype_;}
         bool getPlants() const {return plants_;}
         static std::string soilTypeToString(SoilType soilType);
-        float PassTemperatureToSensor(Sensor::SensorType sensorType) const;
-        int PassSoilMoistureToSensor(Sensor::SensorType sensorType) const;
-        int PassAirHumidityToSensor(Sensor::SensorType sensorType) const;
+        float PassTemperatureToSensor(SensorType sensorType) const;
+        int PassSoilMoistureToSensor(SensorType sensorType) const;
+        int PassAirHumidityToSensor(SensorType sensorType) const;
     
 
     private:

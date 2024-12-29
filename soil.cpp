@@ -3,13 +3,8 @@
 using std::cerr;
 using std::endl;
 using std::string;
-
-#include "sensor.h"
-
-
-
 #include "soil.h"
-
+#include "sensor.h"
 
 
 Soil::Soil() 
@@ -103,10 +98,10 @@ Soil::Soil(SoilType soilType, bool plants, int soilMoisture, float airTemperatur
         soiltemperature_ = calculateSoilTemperature();
     }
 
-    float Soil::PassTemperatureToSensor(Sensor::SensorType sensorType) const {
-        if (sensorType == Sensor::SensorType::SoilTemperatureSensor) {
+    float Soil::PassTemperatureToSensor(SensorType sensorType) const {
+        if (sensorType == SensorType::SoilTemperatureSensor) {
             return getSoilTemperature();
-        } else if (sensorType == Sensor::SensorType::AirTemperatureSensor) {
+        } else if (sensorType == SensorType::AirTemperatureSensor) {
             return getAirTemperature();
         } else {
             cerr << "Invalid sensor type." << endl;
@@ -114,8 +109,8 @@ Soil::Soil(SoilType soilType, bool plants, int soilMoisture, float airTemperatur
         }
     }
 
-    int Soil::PassSoilMoistureToSensor(Sensor::SensorType sensorType) const {
-        if (sensorType == Sensor::SensorType::MoistureSensor) {
+    int Soil::PassSoilMoistureToSensor(SensorType sensorType) const {
+        if (sensorType == SensorType::MoistureSensor) {
             return getSoilMoisture();
         } else {
             cerr << "Invalid sensor type." << endl;
@@ -123,8 +118,8 @@ Soil::Soil(SoilType soilType, bool plants, int soilMoisture, float airTemperatur
         }
     }
 
-    int Soil::PassAirHumidityToSensor(Sensor::SensorType sensorType) const {
-        if (sensorType == Sensor::SensorType::HumiditySensor) {
+    int Soil::PassAirHumidityToSensor(SensorType sensorType) const {
+        if (sensorType == SensorType::HumiditySensor) {
             return getAirHumidity();
         } else {
             cerr << "Invalid sensor type." << endl;
