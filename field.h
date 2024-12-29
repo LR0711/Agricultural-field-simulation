@@ -33,7 +33,8 @@ class Field {
         bool getSoil(int x, int y, Soil& soil) const;
         vector<vector<Soil::SoilType>> getSoilTypes(int startlength, int endlength, int startwidth, int endwidth) const;
         vector<vector<bool>> getPlants(int startlength, int endlength, int startwidth, int endwidth) const;
-
+        void printSoilTypes() const;
+        void printPlantPresence() const;
 
 
     private:
