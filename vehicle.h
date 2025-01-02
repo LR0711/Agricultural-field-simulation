@@ -19,19 +19,29 @@ using std::vector;
 #include "field.h"
 #include <iostream>
 using std::ostream;
+#include <mutex>
+using std::mutex;
+#include <condition_variable>
+using std::condition_variable;
+#include <utility>
+using std::pair;
 
+
+class ControlCenter;
 
 
 class Vehicle {
     public:
         enum class VehicleType {FieldVehicle, AerialVehicle};
         Vehicle();
-        Vehicle(string name, VehicleType type, int x, int y, double speed, float battery, std::vector<Sensor> sensors, const Field& field);
+        Vehicle(string name, int id, VehicleType type, int x, int y, double speed, float battery, std::vector<Sensor> sensors, const Field& field);
         void setPosition(int x, int y);
         void moveToTarget(int targetx, int targety);
         void readDataFromCurrentCell() const;
+        void readAndSendData(ControlCenter& controlCenter);
         std::string getName() const {return name_;}
         VehicleType getType() const {return type_;}
+        int getId() const { return id_; }
         int getX() const {return x_;}
         int getY() const {return y_;}
         double getSpeed() const {return speed_;}
@@ -42,20 +52,23 @@ class Vehicle {
     private:
         string name_;
         VehicleType type_;
+        int id_;
+        static int nextId_; // Tale contatore statico serve per assegnare un id univoco ad ogni veicolo.
         int x_;
         int y_;
         double speed_;
         float battery_;
+        bool isBusy_;
         std::vector<Sensor> sensors_;
         const Field& field_;
+        std::mutex mtx_;
+        std::condition_variable cvnotbusy_;
+
         
         
 };
 
 std::ostream& operator<<(std::ostream& os, const Vehicle& vehicle);
-
-
-
 
 
 #endif
