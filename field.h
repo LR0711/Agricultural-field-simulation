@@ -18,6 +18,7 @@ using std::string;
 using std::ostream;
 #include <functional>
 using std::function;
+#include <mutex>
 
 class Field {
     public:
@@ -45,6 +46,7 @@ class Field {
         bool CheckBoundaries(int startlength, int endlength, int startwidth, int endwidth) const;
         void calculateNewDimensions(int lengthChange, int widthChange, int& newLength, int& newWidth) const;
         void resizeField(int newlength, int newwidth);
+        std::mutex mtx_;
 
 };
 std::ostream& operator<<(std::ostream& os, const Field& field);
