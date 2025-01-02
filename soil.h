@@ -18,18 +18,18 @@ class Soil {
     public:
         enum class SoilType {clay, sand, loam, silt};
         Soil();
-        Soil(SoilType soilType, bool plants, int soilMoisture, float airTemperature, int airHumidity);
+        Soil(SoilType soilType, bool plants, double soilMoisture, float airTemperature, double airHumidity);
         void setSoilType(SoilType soilType);
         void setPlants(bool plants);
-        void setSoilMoisture(int soilMoisture);
+        void setSoilMoisture(double soilMoisture);
         void setAirTemperature(float airTemperature);
-        void setAirHumidity(int airHumidity);
+        void setAirHumidity(double airHumidity);
         SoilType getSoilType() const {return soiltype_;}
         bool getPlants() const {return plants_;}
         static std::string soilTypeToString(SoilType soilType);
         float PassTemperatureToSensor(SensorType sensorType) const;
-        int PassSoilMoistureToSensor(SensorType sensorType) const;
-        int PassAirHumidityToSensor(SensorType sensorType) const;
+        double PassSoilMoistureToSensor(SensorType sensorType) const;
+        double PassAirHumidityToSensor(SensorType sensorType) const;
     
 
     private:
@@ -43,8 +43,8 @@ class Soil {
         bool ValidHumidity () const;
         float getAirTemperature() const {return airtemperature_;}
         float getSoilTemperature() const {return soiltemperature_;}
-        int getAirHumidity() const {return airhumidity_;}
-        int getSoilMoisture() const {return soilmoisture_;}
+        double getAirHumidity() const {return airhumidity_;}
+        double getSoilMoisture() const {return soilmoisture_;}
     };
 
 #endif
