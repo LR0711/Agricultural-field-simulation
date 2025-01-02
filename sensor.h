@@ -24,6 +24,7 @@ class Sensor {
         int readMoisture(const Soil& soil) const;
         int readHumidity(const Soil& soil) const;
         SensorType getType() const { return sensortype_; }
+        static std::string sensorTypeToString(SensorType type);
         void sendDatas();
         
     private:
