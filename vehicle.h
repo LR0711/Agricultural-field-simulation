@@ -51,16 +51,16 @@ class Vehicle {
 
     private:
         string name_;
-        VehicleType type_;
         int id_;
         static int nextId_; // Tale contatore statico serve per assegnare un id univoco ad ogni veicolo.
+        VehicleType type_;
         int x_;
         int y_;
         double speed_;
         float battery_;
-        bool isBusy_;
         std::vector<Sensor> sensors_;
         const Field& field_;
+        bool isBusy_;
         std::mutex mtx_;
         std::condition_variable cvnotbusy_;
 
