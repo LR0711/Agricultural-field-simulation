@@ -6,6 +6,10 @@
 #include <chrono>
 #include <iostream>
 
+// Costruttore del control center
+ControlCenter::ControlCenter(Field& field)
+    : field_(field)
+{}
 // Funzione per ottenere la posizione di un veicolo in ogni istante
 std::pair<int, int> ControlCenter::getVehiclePosition(int vehicleId)  {
     std::unique_lock<std::mutex> lock(mtx_); // Protegge l'accesso alla mappa
@@ -32,15 +36,19 @@ void ControlCenter::commandDataRead(Vehicle& vehicle) {
 void ControlCenter::appendData(const std::vector<SoilData>& dataBatch) {
     std::unique_lock<std::mutex> lock(mtx_); // Protegge l'accesso al buffer: posso scrivere solo se nessun altro veicolo sta scrivendo
     databuffer_.push(dataBatch);
+    std::cout << "Debug: Data appended to buffer" << std::endl;
     cvnotdata_.notify_one(); // Notifica il control center che ci sono nuovi dati nel buffer
 }
 
 // Funzione per la lettura e l'analisi dei dati del buffer
 void ControlCenter::analyzeData() {
+    std::cout << "Field address in ControlCenter: " << &field_ << std::endl;
     std::unique_lock<std::mutex> lock(mtx_);
     while (isanalyzing_ || databuffer_.empty()) {
+        std::cout << "Debug: No data to analyze. Waiting..." << std::endl;
         cvnotdata_.wait(lock);
     }
+    std::cout << "Debug: Analyzing data..." << std::endl;
     isanalyzing_ = true;
 
     auto dataBatch = databuffer_.front();
@@ -48,7 +56,7 @@ void ControlCenter::analyzeData() {
     lock.unlock();
 
     // Simula il tempo di analisi
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    std::this_thread::sleep_for(std::chrono::seconds(5));
 
     // Analisi del dato
     std::map<Sensor::SensorType, double> dataMap;
@@ -56,33 +64,40 @@ void ControlCenter::analyzeData() {
         dataMap[data.type] += data.data;
     }
 
-    // Analisi del dato
-    std::map<Sensor::SensorType, double> dataMap;
-    for (const auto& data : dataBatch) {
-        dataMap[data.type] = data.data;
-    }
-
     int x {dataBatch[0].x};
     int y {dataBatch[0].y};
+    std::cout << "Debug: Analyzing data for cell (" << x << ", " << y << ")" << std::endl;
     Soil AnalyzedSoil;
     field_.getSoil(x, y, AnalyzedSoil);
-
-    bool hasPlants = AnalyzedSoil.getPlants();
+    bool hasPlants {AnalyzedSoil.getPlants()};
     std::string soilType = AnalyzedSoil.soilTypeToString(AnalyzedSoil.getSoilType());
+    // Stampa di debug per verificare i dati del suolo
+    
+    std::cout << "Debug: Soil has plants: " << (hasPlants ? "Yes" : "No") << std::endl;
     std::cout << "Analyzing data for cell (" << x << ", " << y << ") with sensor values in appropriate units:" << std::endl;
     // Buffer per salvare i risultati dell'analisi
     std::vector<std::string> analysisResults;
-
-    for (const auto& sensorData : dataMap) {
-        std::string result = evaluateData(soilType, sensorData.first, sensorData.second);
-        std::cout << "  " << Sensor::sensorTypeToString(sensorData.first) << ": " << sensorData.second << " (" << result << ")" << std::endl;
-        analysisResults.push_back(result);
-
-}
+    if (!hasPlants) {
+        std::cout << "No plants in this area. No need for analysis." << std::endl;
+        lock.lock();
+        isanalyzing_ = false;
+        cvnotdata_.notify_all();
+        std::cout << "Analysis complete." << std::endl;
+        return;
+    } else {
+        std::cout << "Plants detected, proceeding with analysis." << std::endl;
+        for (const auto& sensorData : dataMap) {
+            std::string result = evaluateData(soilType, sensorData.first, sensorData.second);
+            std::cout << "  " << Sensor::sensorTypeToString(sensorData.first) << ": " << sensorData.second << " (" << result << ")" << std::endl;
+            analysisResults.push_back(result);
+        }
+    }
     lock.lock();
     isanalyzing_ = false;
     cvnotdata_.notify_all();
+    std::cout << "Analysis complete." << std::endl;
 }
+
 
 // Funzione per valutare i dati in base al tipo di sensore e al tipo di suolo
 std::string ControlCenter::evaluateData(const std::string& soilType, Sensor::SensorType sensorType, double value) {
