@@ -9,6 +9,7 @@ int Vehicle::nextId_ = 10000;
 // Costruttore di default
 Vehicle::Vehicle()
     :name_{"???"},
+    id_{nextId_++},
     type_{VehicleType::FieldVehicle},
     x_{0},
     y_{0},
@@ -16,15 +17,13 @@ Vehicle::Vehicle()
     battery_{100.0},
     sensors_{},
     field_{Field()},
-    isBusy_{false},
-    id_{nextId_++}
-    
-
+    isBusy_{false}
     {}
 
 // Costruttore con parametri
 Vehicle::Vehicle(std::string name, int id, VehicleType type, int x, int y, double speed, float battery, std::vector<Sensor> sensors, const Field& field)
     : name_{name},
+      id_{nextId_++},
       type_{type},
       x_{x},
       y_{y},
@@ -32,8 +31,8 @@ Vehicle::Vehicle(std::string name, int id, VehicleType type, int x, int y, doubl
       battery_{battery},
       sensors_{sensors},
       field_{field},
-      isBusy_{false},
-      id_{nextId_++}
+      isBusy_{false}
+      
     
     
     {
@@ -169,10 +168,13 @@ void Vehicle::readAndSendData(ControlCenter& controlCenter) {
                 break;
             default:
                 std::cerr << "Unknown sensor type" << std::endl;
+            
         }
         dataBatch.push_back(data);
+        // Stampa di debug per visualizzare i dati raccolti, compresa la posizione del veicolo.
+        std::cout << "Position: (" << x_ << ", " << y_ << "), Sensor Type: " << Sensor::sensorTypeToString(sensor.getType()) << ", Data: " << data.data << std::endl;
     }
-
+    
     controlCenter.appendData(dataBatch); // Invia il batch di dati al centro di controllo
 
     isBusy_ = false;
