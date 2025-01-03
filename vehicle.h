@@ -46,7 +46,8 @@ class Vehicle {
         int getY() const {return y_;}
         double getSpeed() const {return speed_;}
         std::string vehicleTypeToString(VehicleType type) const;
-
+        void drainBattery(float amount);
+        void rechargeBattery();
 
 
     private:
