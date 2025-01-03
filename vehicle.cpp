@@ -46,6 +46,11 @@ Vehicle::Vehicle(std::string name, int id, VehicleType type, int x, int y, doubl
             std::cerr << "Invalid speed: speed must be greater than 0." << std::endl;
             exit(EXIT_FAILURE);
         }
+
+        if (battery <= 0 || battery > 100) {
+            std::cerr << "Invalid battery: battery must be between 0 and 100%." << std::endl;
+            exit(EXIT_FAILURE);
+        }
     }
 
 // Funzione per settare la posizione del veicolo: può essere usata anche nell'ipotesi irrealistica di spostamenti istantanei.
@@ -79,8 +84,20 @@ void Vehicle::moveToTarget(int targetx, int targety) {
     }
     
     double steptime {1.0 / speed_};
+    if (battery_ <= 10.0) {
+            x_ = 0; // Fa "uscire" il veicolo dal campo
+            y_ = 0;
+            rechargeBattery(); // Ricarica la batteria
+        }
+    
     // Il veicolo può spostarsi in diagonale, dato che si sposta in contemporanea in x e y.
     while (x_ != targetx || y_ != targety) {
+        if (battery_ <= 10.0) {
+            x_ = 0; // Fa "uscire" il veicolo dal campo
+            y_ = 0;
+            rechargeBattery(); // Ricarica la batteria
+        }
+        drainBattery(10.0);
         if (x_ < targetx) {
             x_++;
         } else if (x_ > targetx) {
@@ -94,6 +111,7 @@ void Vehicle::moveToTarget(int targetx, int targety) {
         }
 
         std::cout << "Vehicle " << name_ << " moved to position (" << x_ << ", " << y_ << ")" << std::endl;
+        std::cout << "Battery level: " << battery_ << "%" << std::endl;
         std::this_thread::sleep_for(std::chrono::duration<float>(steptime)); // La thread si ferma per un tempo pari a steptime, simulando uno spostamento in tempo discreto del veicolo.
         
     
@@ -141,6 +159,18 @@ void Vehicle::readAndSendData(ControlCenter& controlCenter) {
         cvnotbusy_.wait(lock);
     }
     isBusy_ = true;
+
+    // Salva la posizione attuale del veicolo per eventuale scarica della batteria.
+    int xToBeRead {x_};
+    int yToBeRead {y_};
+    if (battery_ <= 10.0) {
+        std::cout << "Low battery. Returning to base for recharge..." << std::endl;
+        x_= 0;
+        y_ = 0;
+        rechargeBattery();
+        moveToTarget(xToBeRead, yToBeRead);
+    }
+    drainBattery(5.0);
     Soil soil;
     if (!field_.getSoil(x_, y_, soil)) {
         std::cerr << "Error: Unable to read soil data at position (" << x_ << ", " << y_ << ")" << std::endl;
@@ -179,6 +209,24 @@ void Vehicle::readAndSendData(ControlCenter& controlCenter) {
 
     isBusy_ = false;
     cvnotbusy_.notify_one();
+}
+
+// Funzione per la scarica della batteria del veicolo.
+void Vehicle::drainBattery(float amount) {
+    battery_ -= amount;
+    if (battery_ < 0) {
+        battery_ = 0;
+        std::cout << "Battery empty. Vehicle stopped." << std::endl;
+    }
+    
+}
+
+// Funzione per la ricarica della batteria del veicolo.
+void Vehicle::rechargeBattery() {
+    std::cout << "Battery low. Recharging..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(15)); // Simula il tempo di ricarica
+    battery_ = 100.0;
+    std::cout << "Battery fully recharged." << std::endl;
 }
 
 // Funzione per convertire il tipo di veicolo in una stringa
