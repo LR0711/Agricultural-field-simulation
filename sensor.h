@@ -11,6 +11,7 @@
 
 #ifndef SENSOR_H
 #define SENSOR_H
+#include <string>
 
 class Soil;
 
@@ -25,7 +26,7 @@ class Sensor {
         int readHumidity(const Soil& soil) const;
         SensorType getType() const { return sensortype_; }
         static std::string sensorTypeToString(SensorType type);
-        void sendDatas();
+        
         
     private:
         SensorType sensortype_;
