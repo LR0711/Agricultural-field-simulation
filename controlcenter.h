@@ -23,7 +23,7 @@ using std::mutex;
 #include <queue>
 
 
-typedef struct SoilData {
+struct SoilData {
     int x;
     int y;
     Sensor::SensorType type;
@@ -32,18 +32,20 @@ typedef struct SoilData {
 
 class ControlCenter {
     public:
+        ControlCenter(Field& field);
         void sendMovementCommandToVehicle(Vehicle& vehicle, int x, int y);
         std::pair<int, int> getVehiclePosition(int vehicleId);
-        void ControlCenter::commandDataRead(Vehicle& vehicle);
+        void commandDataRead(Vehicle& vehicle);
         void appendData(const std::vector<SoilData>& dataBatch);
         void analyzeData();
 
     private:
+        
         std::map<int, std::pair<int, int>> vehiclepositions_;
         std::queue<vector<SoilData>> databuffer_;
         std::mutex mtx_;
         std::condition_variable cvnotdata_;
-        Field field_;
+        Field& field_;
         bool isanalyzing_ = false;
         std::string evaluateData(const std::string& soilType, Sensor::SensorType sensorType, double value);
         std::string evaluateSoilMoisture(double value, const std::string& soilType);
