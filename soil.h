@@ -35,9 +35,9 @@ class Soil {
     private:
         SoilType soiltype_;
         bool plants_;
-        int soilmoisture_;
+        double soilmoisture_;
         float airtemperature_;
-        int airhumidity_;
+        double airhumidity_;
         float soiltemperature_;
         float calculateSoilTemperature();
         bool ValidHumidity () const;
