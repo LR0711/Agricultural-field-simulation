@@ -1,5 +1,6 @@
 #include "sensor.h"
 #include "soil.h"
+#include <string>
 
 
 // Costruttore di default
@@ -26,7 +27,7 @@ int Sensor::readHumidity(const Soil& soil) const {
 }
 
 // Fuzione per conversione dell'enumerazione SensorType in stringa
-static std::string sensorTypeToString(SensorType type) {
+std::string Sensor::sensorTypeToString(SensorType type) {
         switch (type) {
             case SensorType::SoilTemperatureSensor: return "Soil Temperature";
             case SensorType::AirTemperatureSensor: return "Air Temperature";
