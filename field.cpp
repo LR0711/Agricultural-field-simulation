@@ -161,6 +161,8 @@ bool Field::getSoil(int x, int y, Soil& soil) const
     auto row = field_.begin() + x;
     auto col = (*row).begin() + y;
     soil = *col; // Assegna il tipo di suolo della posizione alla variabile soil
+    // Stampa di debug per verificare i dati del suolo
+    std::cout << "Debug: getSoil at (" << x << ", " << y << ") - hasPlants: " << (soil.getPlants() ? "Yes" : "No") << std::endl;
     return true;
     
 }
