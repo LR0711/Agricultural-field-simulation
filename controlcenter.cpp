@@ -42,77 +42,82 @@ void ControlCenter::appendData(const std::vector<SoilData>& dataBatch) {
 
 // Funzione per la lettura e l'analisi dei dati del buffer
 void ControlCenter::analyzeData() {
-    std::cout << "Field address in ControlCenter: " << &field_ << std::endl;
+    std::cout << "Debug: Buffer size before analysis: " << databuffer_.size() << std::endl;
     std::unique_lock<std::mutex> lock(mtx_);
-    while (isanalyzing_ || databuffer_.empty()) {
-        std::cout << "Debug: No data to analyze. Waiting..." << std::endl;
-        cvnotdata_.wait(lock);
-    }
-    std::cout << "Debug: Analyzing data..." << std::endl;
-    isanalyzing_ = true;
 
-    auto dataBatch = databuffer_.front();
-    databuffer_.pop();
-    lock.unlock();
+    while (!databuffer_.empty()) { // Analizza tutti i batch nel buffer
+        std::cout << "Debug: Analyzing data..." << std::endl;
+        isanalyzing_ = true;
 
-    // Simula il tempo di analisi
-    std::this_thread::sleep_for(std::chrono::seconds(5));
+        auto dataBatch = databuffer_.front();
+        databuffer_.pop();
+        lock.unlock();
 
-    // Analisi del dato
-    std::map<Sensor::SensorType, double> dataMap;
-    for (const auto& data : dataBatch) {
-        dataMap[data.type] += data.data;
-    }
+        // Simula il tempo di analisi
+        std::this_thread::sleep_for(std::chrono::seconds(5));
 
-    int x {dataBatch[0].x};
-    int y {dataBatch[0].y};
-    std::cout << "Debug: Analyzing data for cell (" << x << ", " << y << ")" << std::endl;
-    Soil AnalyzedSoil;
-    field_.getSoil(x, y, AnalyzedSoil);
-    bool hasPlants {AnalyzedSoil.getPlants()};
-    std::string soilType = AnalyzedSoil.soilTypeToString(AnalyzedSoil.getSoilType());
-    // Stampa di debug per verificare i dati del suolo
-    
-    std::cout << "Debug: Soil has plants: " << (hasPlants ? "Yes" : "No") << std::endl;
-    std::cout << "Analyzing data for cell (" << x << ", " << y << ") with sensor values in appropriate units:" << std::endl;
-    // Buffer per salvare i risultati dell'analisi
-    std::vector<std::string> analysisResults;
-    if (!hasPlants) {
-        std::cout << "No plants in this area. No need for analysis." << std::endl;
-        lock.lock();
-        isanalyzing_ = false;
-        cvnotdata_.notify_all();
-        std::cout << "Analysis complete." << std::endl;
-        return;
-    } else {
-        std::cout << "Plants detected, proceeding with analysis." << std::endl;
-        for (const auto& sensorData : dataMap) {
-            std::string result = evaluateData(soilType, sensorData.first, sensorData.second);
-            std::cout << "  " << Sensor::sensorTypeToString(sensorData.first) << ": " << sensorData.second << " (" << result << ")" << std::endl;
-            analysisResults.push_back(result);
+        // Analisi del dato
+        std::map<Sensor::SensorType, double> dataMap;
+        for (const auto& data : dataBatch) {
+            dataMap[data.type] += data.data;
         }
+
+        int x{dataBatch[0].x};
+        int y{dataBatch[0].y};
+        std::cout << "Debug: Analyzing data for cell (" << x << ", " << y << ")" << std::endl;
+
+        Soil AnalyzedSoil;
+        field_.getSoil(x, y, AnalyzedSoil);
+        bool hasPlants{AnalyzedSoil.getPlants()};
+        std::string soilType = AnalyzedSoil.soilTypeToString(AnalyzedSoil.getSoilType());
+
+        std::cout << "Debug: Soil has plants: " << (hasPlants ? "Yes" : "No") << std::endl;
+
+        std::vector<std::string> analysisResults;
+        if (hasPlants) {
+            std::cout << "Plants detected, proceeding with analysis." << std::endl;
+            for (const auto& sensorData : dataMap) {
+                std::string result = evaluateData(soilType, sensorData.first, sensorData.second, x, y);
+                std::cout << "  " << Sensor::sensorTypeToString(sensorData.first) << ": " << sensorData.second << " (" << result << ")" << std::endl;
+                analysisResults.push_back(result);
+            }
+        } else {
+            std::cout << "No plants in this area. No need for analysis." << std::endl;
+        }
+
+        lock.lock();
+        analysisResults_.insert(analysisResults_.end(), analysisResults.begin(), analysisResults.end());
     }
-    lock.lock();
+
     isanalyzing_ = false;
     cvnotdata_.notify_all();
-    std::cout << "Analysis complete." << std::endl;
+    std::cout << "Debug: Analysis complete for current buffer." << std::endl;
 }
 
 
 // Funzione per valutare i dati in base al tipo di sensore e al tipo di suolo
-std::string ControlCenter::evaluateData(const std::string& soilType, Sensor::SensorType sensorType, double value) {
+std::string ControlCenter::evaluateData(const std::string& soilType, Sensor::SensorType sensorType, double value, int x, int y) {
+        std::string result;
         switch (sensorType) {
         case Sensor::SensorType::MoistureSensor:
-            return evaluateSoilMoisture(value, soilType);
+            result = evaluateSoilMoisture(value, soilType);
+            break;
         case Sensor::SensorType::SoilTemperatureSensor:
-            return evaluateSoilTemperature(value, soilType);
+            result = evaluateSoilTemperature(value, soilType);
+            break;
         case Sensor::SensorType::HumiditySensor:
-            return evaluateAirHumidity(value, soilType);
+            result = evaluateAirHumidity(value, soilType);
+            break;
         case Sensor::SensorType::AirTemperatureSensor:
-            return evaluateAirTemperature(value, soilType);
+            result = evaluateAirTemperature(value, soilType);
+            break;
         default:
             return "Unrecognized sensor type";
+            break;
     }
+// Aggiungi la posizione alla stringa result
+    result += " at position (" + std::to_string(x) + ", " + std::to_string(y) + ")";
+    return result;
 }
 
 // Funzione per valutare l'umidità del suolo in base al tipo di suolo: suoli diversi hanno valori di umidità ottimali diversi
@@ -221,4 +226,24 @@ std::string ControlCenter::evaluateAirTemperature(double value, const std::strin
     else {
         return "Unrecognized soil type";
     }
+}
+
+std::vector<std::string> ControlCenter::getAnalysisResults() const {
+    return analysisResults_;
+}
+
+bool ControlCenter::isBufferEmpty() const {
+    std::lock_guard<std::mutex> lock(bufferMutex_);
+    return dataBuffer_.empty();
+}
+
+// Funzione per notificare che la raccolta dati è completata
+void ControlCenter::notifyDataCollectionComplete() {
+    std::unique_lock<std::mutex> lock(mtx_);
+    cvnotdata_.notify_all();
+}
+
+bool ControlCenter::isAnalyzing() {
+    std::unique_lock<std::mutex> lock(mtx_);
+    return isanalyzing_;
 }
