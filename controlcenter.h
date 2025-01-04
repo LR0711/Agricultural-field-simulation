@@ -38,6 +38,10 @@ class ControlCenter {
         void commandDataRead(Vehicle& vehicle);
         void appendData(const std::vector<SoilData>& dataBatch);
         void analyzeData();
+        std::vector<std::string> getAnalysisResults() const;
+        bool isBufferEmpty() const;
+        void notifyDataCollectionComplete();
+        bool isAnalyzing();
 
     private:
         
@@ -46,12 +50,15 @@ class ControlCenter {
         std::mutex mtx_;
         std::condition_variable cvnotdata_;
         Field& field_;
+        std::vector <std::string> dataBuffer_;
         bool isanalyzing_ = false;
-        std::string evaluateData(const std::string& soilType, Sensor::SensorType sensorType, double value);
+        std::vector<std::string> analysisResults_;
+        std::string evaluateData(const std::string& soilType, Sensor::SensorType sensorType, double value, int x, int y);
         std::string evaluateSoilMoisture(double value, const std::string& soilType);
         std::string evaluateSoilTemperature(double value, const std::string& soilType);
         std::string evaluateAirTemperature(double value, const std::string& soilType);
         std::string evaluateAirHumidity(double value, const std::string& soilType);
+        mutable std::mutex bufferMutex_;
 
 
 
