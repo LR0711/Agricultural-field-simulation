@@ -69,7 +69,6 @@ void Vehicle::setPosition(int x, int y) {
 
 // Funzione per spostare il veicolo in una posizione target: il tempo di spostamento è proporzionale alla distanza tra la posizione attuale e la posizione target e alla velocità del veicolo.
 void Vehicle::moveToTarget(int targetx, int targety) {
-    // Lock per evitare che il veicolo vada verso un target se già in movimento o in fase di lettura.
     std::unique_lock<std::mutex> lock(mtx_);
     while (isBusy_) {
         cvnotbusy_.wait(lock);
@@ -78,47 +77,63 @@ void Vehicle::moveToTarget(int targetx, int targety) {
 
     if (targetx < 0 || targetx >= field_.getLength() || targety < 0 || targety >= field_.getWidth()) {
         std::cerr << "Invalid coordinates: target is out of field." << std::endl;
-        exit(EXIT_FAILURE);
         isBusy_ = false;
         cvnotbusy_.notify_one();
+        return;
     }
-    
-    double steptime {1.0 / speed_};
-    if (battery_ <= 10.0) {
-            x_ = 0; // Fa "uscire" il veicolo dal campo
-            y_ = 0;
-            rechargeBattery(); // Ricarica la batteria
-        }
-    
-    // Il veicolo può spostarsi in diagonale, dato che si sposta in contemporanea in x e y.
+
+    double steptime = 1.0 / speed_; // Simula il tempo di movimento in base alla velocità
+
+    std::cout << "Debug: Vehicle starting movement to (" << targetx << ", " << targety << ") from (" << x_ << ", " << y_ << ")" << std::endl;
+
     while (x_ != targetx || y_ != targety) {
+        // Controllo della batteria
         if (battery_ <= 10.0) {
-            x_ = 0; // Fa "uscire" il veicolo dal campo
-            y_ = 0;
+            std::cout << "Low battery. Returning to base for recharge..." << std::endl;
+
+            // Ritorno alla base (0, 0)
+            while (x_ != 0 || y_ != 0) {
+                if (x_ > 0) {
+                    --x_;}
+                else if (x_ < 0) {
+                ++x_;}
+
+                if (y_ > 0) {
+                    --y_;}
+                else if (y_ < 0) {
+                    ++y_;
+                }
+
+                std::cout << "Returning to base, current position: (" << x_ << ", " << y_ << ")" << std::endl;
+                std::this_thread::sleep_for(std::chrono::duration<float>(steptime));
+            }
+
+            lock.unlock(); // Rilascia il lock durante la ricarica
             rechargeBattery(); // Ricarica la batteria
-        }
-        drainBattery(10.0);
-        if (x_ < targetx) {
-            x_++;
-        } else if (x_ > targetx) {
-            x_--;
+            lock.lock(); // Riacquisisce il lock dopo la ricarica
+
+            std::cout << "Resuming movement to target (" << targetx << ", " << targety << ")" << std::endl;
         }
 
+        // Movimento verso il target
+        drainBattery(1.0);
+        if (x_ < targetx) {
+        ++x_;}
+        else if (x_ > targetx) {
+            --x_;}
+
         if (y_ < targety) {
-            y_++;
-        } else if (y_ > targety) {
-            y_--;
-        }
+            ++y_;}
+        else if (y_ > targety) {
+            --y_;}
 
         std::cout << "Vehicle " << name_ << " moved to position (" << x_ << ", " << y_ << ")" << std::endl;
         std::cout << "Battery level: " << battery_ << "%" << std::endl;
-        std::this_thread::sleep_for(std::chrono::duration<float>(steptime)); // La thread si ferma per un tempo pari a steptime, simulando uno spostamento in tempo discreto del veicolo.
-        
-    
+
+        std::this_thread::sleep_for(std::chrono::duration<float>(steptime)); // Simula il tempo di movimento
     }
+
     std::cout << "Vehicle " << name_ << " reached target at position (" << x_ << ", " << y_ << ")" << std::endl;
-    
-    
 
     isBusy_ = false;
     cvnotbusy_.notify_one();
@@ -160,57 +175,74 @@ void Vehicle::readAndSendData(ControlCenter& controlCenter) {
     }
     isBusy_ = true;
 
-    // Salva la posizione attuale del veicolo per eventuale scarica della batteria.
-    int xToBeRead {x_};
-    int yToBeRead {y_};
-    if (battery_ <= 10.0) {
+    int xToBeRead = x_;
+    int yToBeRead = y_;
+
+    while (battery_ <= 10.0) {
         std::cout << "Low battery. Returning to base for recharge..." << std::endl;
-        x_= 0;
-        y_ = 0;
-        rechargeBattery();
-        moveToTarget(xToBeRead, yToBeRead);
+
+        // Ritorno alla base (0, 0)
+        while (x_ != 0 || y_ != 0) {
+            if (x_ > 0) --x_;
+            else if (x_ < 0) ++x_;
+
+            if (y_ > 0) --y_;
+            else if (y_ < 0) ++y_;
+
+            std::cout << "Returning to base, current position: (" << x_ << ", " << y_ << ")" << std::endl;
+            std::this_thread::sleep_for(std::chrono::duration<float>(1.0 / speed_));
+        }
+
+        lock.unlock(); // Rilascia il lock durante la ricarica
+        rechargeBattery(); // Ricarica la batteria
+        lock.lock(); // Riacquisisce il lock dopo la ricarica
+
+        std::cout << "Resuming data collection at (" << xToBeRead << ", " << yToBeRead << ")" << std::endl;
     }
+
     drainBattery(5.0);
+
     Soil soil;
-    if (!field_.getSoil(x_, y_, soil)) {
-        std::cerr << "Error: Unable to read soil data at position (" << x_ << ", " << y_ << ")" << std::endl;
+    if (!field_.getSoil(xToBeRead, yToBeRead, soil)) {
+        std::cerr << "Error: Unable to read soil data at position (" << xToBeRead << ", " << yToBeRead << ")" << std::endl;
         isBusy_ = false;
         cvnotbusy_.notify_one();
         return;
     }
 
+    // Lettura dei dati dai sensori
     std::vector<SoilData> dataBatch;
     for (const auto& sensor : sensors_) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simulazione di un tempo di lettura dei dati.
+        std::this_thread::sleep_for(std::chrono::milliseconds(100)); // Simula il tempo di lettura dei dati
         SoilData data;
         switch (sensor.getType()) {
             case Sensor::SensorType::SoilTemperatureSensor:
-                data = {x_, y_, Sensor::SensorType::SoilTemperatureSensor, soil.PassTemperatureToSensor(Sensor::SensorType::SoilTemperatureSensor)};
+                data = {xToBeRead, yToBeRead, Sensor::SensorType::SoilTemperatureSensor, soil.PassTemperatureToSensor(Sensor::SensorType::SoilTemperatureSensor)};
                 break;
             case Sensor::SensorType::AirTemperatureSensor:
-                data = {x_, y_, Sensor::SensorType::AirTemperatureSensor, soil.PassTemperatureToSensor(Sensor::SensorType::AirTemperatureSensor)};
+                data = {xToBeRead, yToBeRead, Sensor::SensorType::AirTemperatureSensor, soil.PassTemperatureToSensor(Sensor::SensorType::AirTemperatureSensor)};
                 break;
             case Sensor::SensorType::MoistureSensor:
-                data = {x_, y_, Sensor::SensorType::MoistureSensor, soil.PassSoilMoistureToSensor(Sensor::SensorType::MoistureSensor)};
+                data = {xToBeRead, yToBeRead, Sensor::SensorType::MoistureSensor, soil.PassSoilMoistureToSensor(Sensor::SensorType::MoistureSensor)};
                 break;
             case Sensor::SensorType::HumiditySensor:
-                data = {x_, y_, Sensor::SensorType::HumiditySensor, soil.PassAirHumidityToSensor(Sensor::SensorType::HumiditySensor)};
+                data = {xToBeRead, yToBeRead, Sensor::SensorType::HumiditySensor, soil.PassAirHumidityToSensor(Sensor::SensorType::HumiditySensor)};
                 break;
             default:
                 std::cerr << "Unknown sensor type" << std::endl;
-            
         }
         dataBatch.push_back(data);
-        // Stampa di debug per visualizzare i dati raccolti, compresa la posizione del veicolo.
-        std::cout << "Position: (" << x_ << ", " << y_ << "), Sensor Type: " << Sensor::sensorTypeToString(sensor.getType()) << ", Data: " << data.data << std::endl;
+        std::cout << "Debug: Data read at position (" << xToBeRead << ", " << yToBeRead << ") for sensor " 
+                  << Sensor::sensorTypeToString(sensor.getType()) << ": " << data.data << std::endl;
     }
-    
-    controlCenter.appendData(dataBatch); // Invia il batch di dati al centro di controllo
+
+    // Invio dei dati al centro di controllo
+    controlCenter.appendData(dataBatch);
+    std::cout << "Debug: Data sent for position (" << xToBeRead << ", " << yToBeRead << ")" << std::endl;
 
     isBusy_ = false;
     cvnotbusy_.notify_one();
 }
-
 // Funzione per la scarica della batteria del veicolo.
 void Vehicle::drainBattery(float amount) {
     battery_ -= amount;
