@@ -20,12 +20,6 @@
 #include <mutex>
 
 
-// Variabili globali per il buffer dei dati e lo stato del sistema
-std::vector<SoilData> globalDataBuffer;
-std::mutex bufferMutex; // 
-bool dataCollectionComplete = false; // Indica che la raccolta dati è completata
-bool analysisComplete = false; // Indica che l'analisi è terminata
-
 void vehicleTask(Vehicle& vehicle, ControlCenter& controlCenter, const std::vector<std::pair<int, int>>& plantPositions) {
     for (const auto& pos : plantPositions) {
         std::cout << "Debug: Plant position (" << pos.first << ", " << pos.second << ")" << std::endl;
@@ -33,16 +27,14 @@ void vehicleTask(Vehicle& vehicle, ControlCenter& controlCenter, const std::vect
         controlCenter.commandDataRead(vehicle);
     }
     // Segnala che la raccolta dati è completata
-    std::unique_lock<std::mutex> lock(bufferMutex);
-    dataCollectionComplete = true;
-    controlCenter.notifyDataCollectionComplete(); // Notifica il centro di controllo
+    controlCenter.setDataCollectionComplete(true);
+    controlCenter.notifyDataCollectionComplete();
 }
 
 void controlCenterTask(ControlCenter& controlCenter) {
     while (true) {
         {
-            std::unique_lock<std::mutex> lock(bufferMutex);
-            if (dataCollectionComplete && controlCenter.isBufferEmpty() && !controlCenter.isAnalyzing()) {
+            if (controlCenter.isDataCollectionComplete() && controlCenter.isBufferEmpty() && !controlCenter.isAnalyzing()) {
                 std::cout << "Debug: Exiting analysis loop - all data processed" << std::endl;
                 break;
             }
@@ -50,8 +42,9 @@ void controlCenterTask(ControlCenter& controlCenter) {
         std::this_thread::sleep_for(std::chrono::seconds(1)); // Riduci il tempo di attesa
         controlCenter.analyzeData();
     }
-    analysisComplete = true;
+    controlCenter.setAnalysisComplete(true);
 }
+
 
 int main() {
     // Creazione del campo con dimensioni 10x10 e nome "Fattoria"
