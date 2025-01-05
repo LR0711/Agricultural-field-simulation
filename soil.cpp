@@ -138,7 +138,7 @@ Soil::Soil(SoilType soilType, bool plants, double soilMoisture, float airTempera
     }
 
 
-    // Funzione per convertire l'enumerazione SoilType in una stringa
+    // Funzione per convertire l'enumerazione SoilType in una stringa ai fini di stampa a video.
     std::string Soil::soilTypeToString(SoilType soilType)
     {
         switch(soilType)
