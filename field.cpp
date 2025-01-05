@@ -5,12 +5,12 @@ using std::fill;
 using std::for_each;
 #include "field.h"
 
-// Costruttore di default
+// Costruttore di default: viene inizializzato un campo di dimensioni 1x1 con nome "???".
 Field::Field()
     :fieldname_{"???"},
     length_{1},
     width_{1},
-    field_{vector<vector<Soil>>(1, vector<Soil>(1))}
+    field_{vector<vector<Soil>>(1, vector<Soil>(1))} // Si è scelto di inizializzare il campo con tale elemento per simulare l'idea di "costruire da zero" il proprio campo.
     {}
 // Costruttore con parametri: crea una matrice length*witdh riempendola del tipo di suolo Soil()
 Field::Field(std::string fieldname, int length, int width)
@@ -25,7 +25,7 @@ Field::Field(std::string fieldname, int length, int width)
         }
     }
 
-// Setta il tipo di suolo in un'area specifica della matrice
+// Setta il tipo di suolo, comprensivo di tutti i parametri della classe Soil, in un'area specifica della matrice
 void Field::setSoil(const Soil& soil, int startlength, int endlength, int startwidth, int endwidth)
     {
          std::lock_guard<std::mutex> lock(mtx_); // Necessario per proteggere l'accesso alla matrice
@@ -34,14 +34,14 @@ void Field::setSoil(const Soil& soil, int startlength, int endlength, int startw
                 std::cerr << "Selected range is out of boundaries." << std::endl;
                 exit(EXIT_FAILURE);
         }
-
-        for (auto row = field_.begin() + startlength; row != field_.begin() + endlength + 1; ++row) {
+        // Per ogni riga della matrice, si riempie l'area selezionata con il tipo di suolo Soil() usando il concetto di iteratori ed algoritmi della libreria standard.
+        for (auto row = field_.begin() + startlength; row != field_.begin() + endlength + 1; ++row) { 
                 std::fill((*row).begin() + startwidth, (*row).begin() + endwidth + 1, soil);
 
         }
     }
 
-// Tale funzione si usa nel momento in cui si voglia cambiare una specifica proprietà del suolo in un'area specifica del campo
+// Tale funzione si usa nel momento in cui si voglia cambiare una sola specifica proprietà del suolo in un'area specifica del campo e non l'intera cella.
 void Field::modifySoilProperty(int startlength, int endlength, int startwidth, int endwidth, std::function<void(Soil&)> modifyFunc)
     {
          std::lock_guard<std::mutex> lock(mtx_);
@@ -55,7 +55,7 @@ void Field::modifySoilProperty(int startlength, int endlength, int startwidth, i
         }
     }
 
-// Funzione che cambia il nome del campo
+// Funzione che consente il cambio di nome assengnato al campo
 void Field::changeFieldname(std::string fieldname)
     {
         fieldname_ = fieldname;
@@ -66,7 +66,7 @@ void Field::changeDimensions(int lengthChange, int widthChange)
 {
     int newLength, newWidth; 
     calculateNewDimensions(lengthChange, widthChange, newLength, newWidth); // Calcola le nuove dimensioni del campo con la funzione calculateNewDimensions
-    int oldLength {length_};
+    int oldLength {length_}; 
     int oldWidth  {width_};
     resizeField(newLength, newWidth); // Ridimensiona il campo 
     length_ = newLength; // Aggiorna la lunghezza del campo
@@ -84,9 +84,7 @@ void Field::changeDimensions(int lengthChange, int widthChange)
 // Funzione privata usata dai setter del campo per controllare se l'area selezionata è all'interno dei limiti della matrice
 bool Field::CheckBoundaries(int startlength, int endlength, int startwidth, int endwidth) const
     {
-        std::cout << "Checking boundaries: startlength=" << startlength << ", endlength=" << endlength
-              << ", startwidth=" << startwidth << ", endwidth=" << endwidth << std::endl;
-        std::cout << "Field dimensions: length=" << length_ << ", width=" << width_ << std::endl;
+
         if (startlength < 0 || startlength >= length_ || endlength < 0 || endlength >= length_ || startwidth < 0 || startwidth >= width_ || endwidth < 0 || endwidth >= width_) {
             return false;
         }
@@ -108,7 +106,7 @@ void Field::calculateNewDimensions(int lengthChange, int widthChange, int& newLe
 // Funzione privata usata per ridimensionare il campo
 void Field::resizeField(int newlength, int newwidth)
 {
-    std::lock_guard<std::mutex> lock(mtx_);
+    std::lock_guard<std::mutex> lock(mtx_); // Nel mentre in cui si ridimensiona il campo, si protegge l'accesso alla matrice per evitare che altri thread possano accedervi.
     field_.resize(newlength); 
     for (auto& row : field_) {
         row.resize(newwidth);
