@@ -1,13 +1,11 @@
-// The control center class is the main core for the concurrency problem in this project.
-// This class gives to the vehicles the task to move in specified areas of the field and get datas from the soil.
-// After that, the vehicles will send datas to the control center, including the position data, and the control center will elaborate them.
-// In this way, the control center will help  users to take future decisions for their field, for example giving alerts for areas with low moisture soil level.
-// The control center will analyze periodically all the datas stored in his buffer and sent by the vehicles.
-// Lastly, vehicle will always communicate with the control center his actual position.
-// It is important to consider this unit and every vehicle unit as a different thread, and the control center as the main thread.
-// It is important to consider where to put the shared buffer, and how to manage the access to it.
-//It is important to consider where to put the comunication channels between the vehicles and the control center.
-// Lastly, it is important to consider which condition variables to use, and where to put them, and the mutexes to use.
+// La classe "ControlCenter" rappresenta il centro di controllo del sistema di monitoraggio agricolo.
+// Per tale ragione, essa viene definita passando per const reference un oggetto di tipo "Field" che rappresenta il campo agricolo da monitorare.
+// Sfruttando i concetti basilari della programmazione concorrente, la classe "ControlCenter" comanda i veicoli sul campo e riceve i dati da essi.
+// All'interno della classe ho infatti un buffer di dati raccolti tramite sensori, oltre che una mappa che tiene traccia delle posizioni dei veicoli.
+// La classe ha anche un mutex per proteggere l'accesso a tali strutture dati.
+// Sono presenti vari metodi legati all'invio di comandi ai veicoli, alla raccolta dei dati, all'analisi dei dati e alla restituzione dei risultati.
+// La classe è inoltre dotata di vari metodi per la gestione del buffer e delle variabili di stato.
+// Tutti i metodi sono sinteticamente spiegati nel file "controlcenter.cpp".
 
 #ifndef CONTROLCENTER_H
 #define CONTROLCENTER_H
@@ -32,9 +30,8 @@ struct SoilData {
 
 class ControlCenter {
     public:
-        ControlCenter(Field& field);
+        ControlCenter(const Field& field);
         void sendMovementCommandToVehicle(Vehicle& vehicle, int x, int y);
-        std::pair<int, int> getVehiclePosition(int vehicleId);
         void commandDataRead(Vehicle& vehicle);
         void appendData(const std::vector<SoilData>& dataBatch);
         void analyzeData();
@@ -42,16 +39,18 @@ class ControlCenter {
         bool isBufferEmpty() const;
         void notifyDataCollectionComplete();
         bool isAnalyzing();
+        bool isDataCollectionComplete() const { return dataCollectionComplete_; }
+        void setDataCollectionComplete(bool status);
+        bool isAnalysisComplete() const { return analysisComplete_; }
+        void setAnalysisComplete(bool status);
 
     private:
-        
+        const Field& field_;
         std::map<int, std::pair<int, int>> vehiclepositions_;
         std::queue<vector<SoilData>> databuffer_;
         std::mutex mtx_;
         std::condition_variable cvnotdata_;
-        Field& field_;
         std::vector <std::string> dataBuffer_;
-        bool isanalyzing_ = false;
         std::vector<std::string> analysisResults_;
         std::string evaluateData(const std::string& soilType, Sensor::SensorType sensorType, double value, int x, int y);
         std::string evaluateSoilMoisture(double value, const std::string& soilType);
@@ -59,6 +58,9 @@ class ControlCenter {
         std::string evaluateAirTemperature(double value, const std::string& soilType);
         std::string evaluateAirHumidity(double value, const std::string& soilType);
         mutable std::mutex bufferMutex_;
+        bool isanalyzing_ = false;
+        bool dataCollectionComplete_ = false;
+        bool analysisComplete_ = false;
 
 
 
