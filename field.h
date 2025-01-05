@@ -1,11 +1,9 @@
-//This class here, the "field" class, represents the real simulated agricultural environment, and it is a collection, in the form of a matrix, of different soil objects.
-// The class has a constructor that takes as input parameters the name of the field, the number of rows and columns of the field, creating a vector of vectors of soil objects.
-// Simulating the idea of "building from "scratches" your field, at the start of the simulation the field will be filled with all the same type of soil, and the same conditions.
-// In order to put different conditions in different areas of the field, the class has a method that takes as input a subpart of the field, and a soil object, and sets the soil object in the subpart.
-// There are also methods for changing just some parameters of the soil in a subpart of the field, and for getting the type of soil in a subpart of the field.
-// In a future version, there could be a method for filling the field with different random types of soil, keeping for all the elements same air temperature.
-// There is also a method for changing the dimensions and the name of the field.
-
+// La classe "Field" rappresenta il terreno di base dell'algoritmo di simulazione dell'ambiente agricolo ed è una raccolta, sotto forma di matrice, di diversi oggetti Soil.
+// La classe ha un costruttore che prende come parametri di input il nome del campo, il numero di righe e colonne del campo, creando un vettore di vettori di oggetti Soil costruiti col costruttore di default.
+// Ciò per simulare l'idea di "costruire da zero" il proprio campo: in questo modo all'inizio della simulazione il campo sarà riempito con lo stesso tipo di suolo e le stesse condizioni atmosferiche.
+// Per mettere condizioni diverse in aree diverse del campo, la classe ha un metodo che prende come input una sotto-parte del campo e un oggetto Soil, e imposta l'oggetto Soil nella sotto-parte.
+// Sono presenti diversi metodi la cui funzione è sintetizzata nel file "field.cpp".
+// Allo stato attuale del progetto, il campo è statico e hardcoded, ma l'idea è di poter avere un campo con condizioni diverse in aree diverse con apposite future implementazioni. 
 
 #ifndef FIELD_H
 #define FIELD_H
