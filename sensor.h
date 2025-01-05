@@ -1,14 +1,9 @@
-// The class "sensor" represens the main class that will be used to get the datas from the field.
-// In this simulation, there will be 4 different kind of sensors meant for the 4 different kind of datas that we want to get from the field.
-// The datas are the soil and air temperature, the soil moisture, the air humidity and plant health.
-// The sensors will be placed in the vehicles to get the datas from the field.
-// When the veichle reaches the target cell, the sensors will be activated and will get the datas from the field.
-// The sensors will be activated by the vehicle class, that will call the method "getDatas" of the sensor class.
-// The sensor class will have a method for each kind of data that we want to get from the field.
-// After getting the data, sensor will send it to the vehicle class, that will send it to the central unit.
-// The sensor class will have a method to get the data from the field, and a method to send the data to the vehicle class.
-// Just remember that sensor is the only way to read those data from the field, and the vehicle class is the only way to get the data from the sensor class.
-
+// La classe "sensor" rappresenta i soli strumenti di lettura dei dati del terreno e dell'aria a disposizione dell'utente.
+// L'utente infatti può settare tali dati ma non può leggerli direttamente senza l'ausilio di un sensore.
+// I sensori possono essere di diversi tipi: sensori di umidità del terreno, sensori di temperatura del terreno, sensori di umidità dell'aria, sensori di temperatura dell'aria.
+// Si era pensato di implementare anche un sensore della salute delle piante come da consegna ma, data la necessità di introdurre una funzione apposita per valutare lo stato di salute della pianta, non è stata messa.
+// La classe ha un costruttore di default e un costruttore con parametro di input che prende come parametro un enumeratore SensorType.
+// La descrizione delle funzioni è presente nel file "sensor.cpp".
 #ifndef SENSOR_H
 #define SENSOR_H
 #include <string>
@@ -18,12 +13,12 @@ class Soil;
 
 class Sensor {
     public:
-        enum class SensorType {MoistureSensor, SoilTemperatureSensor, HumiditySensor, AirTemperatureSensor, PlantHealthSensor};
+        enum class SensorType {MoistureSensor, SoilTemperatureSensor, HumiditySensor, AirTemperatureSensor};
         Sensor();
         Sensor(SensorType type);
         float readTemperature(const Soil& soil) const;
-        int readMoisture(const Soil& soil) const;
-        int readHumidity(const Soil& soil) const;
+        double readMoisture(const Soil& soil) const;
+        double readHumidity(const Soil& soil) const;
         SensorType getType() const { return sensortype_; }
         static std::string sensorTypeToString(SensorType type);
         
