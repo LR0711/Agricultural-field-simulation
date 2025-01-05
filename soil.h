@@ -1,17 +1,21 @@
-// This class here is the "soil" class, that represents the base unit for the simulation of the agricultural field.
-// It's like a square portion of the bigger field, and it represents the idea that we can have different properties of the soil in the same field.
-// In the first version of this project, we consider that we can have different conditions in different areas of the field but this properties are static and hardcoded.
-// This class takes as input parameters an enum class representing 4 different type of possible soils (clay, sand, loam, silt), a bool saying if there are plants or not
-// an int representing the percentage of soil moisture and two int representing air temperature and air humidity in percentage.
-// There's another parameter, the soil temeperature, that is calculated by the class itself, based on the air temperature, the type of soil and the soil moisture.
-// The class gives method to get presence of plants and type of soil and to set all the parameters, but user can't get temeratures, moisture and humidity without a proper sensor class.
+// Questa classe è la classe "Soil", che rappresenta l'unità base per la simulazione del campo agricolo.
+// È come una porzione quadrata del campo più grande e rappresenta l'idea che si possano avere diverse proprietà del suolo nello stesso campo.
+// Nella prima versione di questo progetto si considera di poter avere condizioni diverse in aree diverse del campo, ma queste proprietà sono statiche e hardcoded.
+// Questa classe prende come parametri di input i seguenti parametri: 
+// 1) Un enumeratore SoilType che rappresenta il tipo di suolo (argilla, sabbia, limo, limo). In base al tipo di suolo ho una diversa temperatura del terreno a parità di altre condizioni.
+// 2) Un booleano che rappresenta la presenza di piante, ad indicare le zone del campo di maggiore interesse per l'analisi (si procederà con un analisi dettagliata solo per le zone con le colture)
+// 3) Un double che rappresenta l'umidità del suolo, che è un valore compreso tra 0 e 100.
+// 4) Un float che rappresenta la temperatura dell'aria, che è un valore in gradi Celsius.
+// 5) Un double che rappresenta l'umidità dell'aria, che è un valore compreso tra 0 e 100.
+// In Base a questi parametri, la classe calcola la temperatura del suolo, che è un valore in gradi Celsius variabile in base al tipo di suolo (per simulare l'idea di differente conducibilità termica in base al tipo di terreno e a quanto sia bagnato).
+// Sono presenti varie funzioni la cui utilità è spiegata nel file soil.cpp.
 
 #ifndef SOIL_H
 #define SOIL_H
 #include <string>
 
 #include "sensor.h"
-using SensorType = Sensor::SensorType;
+using SensorType = Sensor::SensorType; 
 
 
 class Soil {
