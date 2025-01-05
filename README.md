@@ -50,7 +50,7 @@ Attualmente, il campo agricolo è in condizioni statiche, e i parametri fisici s
 
 ## Interazione ambiente agricolo utente
 
-L'utente può interagire con l'ambiente agricolo costruito mediante unità autonome, rappresentati dalla classe `Vehicle`, che simula gli appositi veicoli di misurazione dei dati sul campo. Il veicolo viene definito dall'utente in base al tipo di veicolo (nella versione attuale non c'è differenza significativa tra field e aerial), alle sue coordinate sul campo ed ai suoi parametri fisici di velocità (in celle/sec) e di batteria (al momento tale dato non influenza nulla nella simulazione ma in una futura implementazione più realistica può diminuire dinamicamente e rendere impossibile al veicolo muoversi e misurare fino alla ricarica).
+L'utente può interagire con l'ambiente agricolo costruito mediante unità autonome, rappresentati dalla classe `Vehicle`, che simula gli appositi veicoli di misurazione dei dati sul campo. Il veicolo viene definito dall'utente in base al tipo di veicolo (nella versione attuale non c'è differenza significativa tra field e aerial), alle sue coordinate sul campo ed ai suoi parametri fisici di velocità (in celle/sec) e di batteria. La batteria diminuisce ad ogni operazione di movimento e lettura con invio dati del veicolo e, se raggiunge un valore di soglia minima, "costringe" il veicolo a tornare alla base ed a doversi ricaricare prima di riprendere l'operazione in corso.
 
 ### Funzioni principali dei veicoli
 
@@ -80,6 +80,8 @@ I sensori, rappresentati dalla classe `Sensor`, sono utilizzati per raccogliere 
 - **readTemperature**: Legge la temperatura dal suolo.
 - **readMoisture**: Legge l'umidità del suolo.
 - **readHumidity**: Legge l'umidità dell'aria.
+
+Allo stato attuale del progetto i sensori leggono il valore esatto delle celle nel campo. Un'idea per rendere il loro funzionamento più verosimile è quello di aggiungere un rumore alle misure dei sensori stessi.
 
 ## Programmazione concorrente
 
