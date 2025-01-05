@@ -6,25 +6,15 @@
 #include <chrono>
 #include <iostream>
 
-// Costruttore del control center
-ControlCenter::ControlCenter(Field& field)
+// Costruttore del control center: viene passato il campo come parametro per poter accedere ai dati del terreno
+ControlCenter::ControlCenter(const Field& field)
     : field_(field)
 {}
-// Funzione per ottenere la posizione di un veicolo in ogni istante
-std::pair<int, int> ControlCenter::getVehiclePosition(int vehicleId)  {
-    std::unique_lock<std::mutex> lock(mtx_); // Protegge l'accesso alla mappa
-    auto it = vehiclepositions_.find(vehicleId);
-    if (it != vehiclepositions_.end()) {
-        return (*it).second;
-    }
-    return {0, 0}; // Valore di default se il veicolo non è trovato
-}
 
 // Funzione per inviare un comando di movimento a un veicolo
 void ControlCenter::sendMovementCommandToVehicle(Vehicle& vehicle, int x, int y) {
     vehicle.moveToTarget(x, y);
-    std::unique_lock<std::mutex> lock(mtx_); // Protegge l'aggiornamento della mappa
-    vehiclepositions_[vehicle.getId()] = {vehicle.getX(), vehicle.getY()};
+    vehiclepositions_[vehicle.getId()] = {vehicle.getX(), vehicle.getY()}; // Aggiorna la posizione del veicolo nel control center
 }
 
 // Funzione per inviare un comando di lettura dei dati a un veicolo
@@ -34,7 +24,7 @@ void ControlCenter::commandDataRead(Vehicle& vehicle) {
 
 // Funzione per aggiungere i dati al buffer del control center
 void ControlCenter::appendData(const std::vector<SoilData>& dataBatch) {
-    std::unique_lock<std::mutex> lock(mtx_); // Protegge l'accesso al buffer: posso scrivere solo se nessun altro veicolo sta scrivendo
+    std::unique_lock<std::mutex> lock(bufferMutex_); // Protegge l'accesso al buffer: posso scrivere solo se nessun altro veicolo sta scrivendo
     databuffer_.push(dataBatch);
     std::cout << "Debug: Data appended to buffer" << std::endl;
     cvnotdata_.notify_one(); // Notifica il control center che ci sono nuovi dati nel buffer
@@ -43,11 +33,16 @@ void ControlCenter::appendData(const std::vector<SoilData>& dataBatch) {
 // Funzione per la lettura e l'analisi dei dati del buffer
 void ControlCenter::analyzeData() {
     std::cout << "Debug: Buffer size before analysis: " << databuffer_.size() << std::endl;
-    std::unique_lock<std::mutex> lock(mtx_);
+    std::unique_lock<std::mutex> lock(bufferMutex_); // Protegge l'accesso al buffer su cui agisce sia il control center che i veicoli
+    // Finché ci sono dati nel buffer o la raccolta dati non è completata, il control center analizza i dati
+    while (true) { 
+        cvnotdata_.wait(lock, [this] { return !databuffer_.empty() || dataCollectionComplete_; }); // Attendi finché non ci sono dati nel buffer o la raccolta dati non è completata
 
-    while (!databuffer_.empty()) { // Analizza tutti i batch nel buffer
+        if (databuffer_.empty() && dataCollectionComplete_) { 
+            break; 
+        }
         std::cout << "Debug: Analyzing data..." << std::endl;
-        isanalyzing_ = true;
+        isanalyzing_ = true; // Tale booleano indica che il control center sta analizzando i dati
 
         auto dataBatch = databuffer_.front();
         databuffer_.pop();
@@ -65,7 +60,7 @@ void ControlCenter::analyzeData() {
         int x{dataBatch[0].x};
         int y{dataBatch[0].y};
         std::cout << "Debug: Analyzing data for cell (" << x << ", " << y << ")" << std::endl;
-
+        // Dalle coordinate del veicolo, si ottiene il tipo di suolo e si verifica la presenza di piante
         Soil AnalyzedSoil;
         field_.getSoil(x, y, AnalyzedSoil);
         bool hasPlants{AnalyzedSoil.getPlants()};
@@ -74,6 +69,7 @@ void ControlCenter::analyzeData() {
         std::cout << "Debug: Soil has plants: " << (hasPlants ? "Yes" : "No") << std::endl;
 
         std::vector<std::string> analysisResults;
+        // Se ci sono piante, si procede con l'analisi, altrimenti questa non è necessaria
         if (hasPlants) {
             std::cout << "Plants detected, proceeding with analysis." << std::endl;
             for (const auto& sensorData : dataMap) {
@@ -85,12 +81,12 @@ void ControlCenter::analyzeData() {
             std::cout << "No plants in this area. No need for analysis." << std::endl;
         }
 
-        lock.lock();
+        lock.lock(); // Riacquisisce il lock per scrivere
         analysisResults_.insert(analysisResults_.end(), analysisResults.begin(), analysisResults.end());
     }
 
     isanalyzing_ = false;
-    cvnotdata_.notify_all();
+    cvnotdata_.notify_all(); // Notifica che l'analisi è completata e che il buffer è vuoto
     std::cout << "Debug: Analysis complete for current buffer." << std::endl;
 }
 
@@ -115,7 +111,7 @@ std::string ControlCenter::evaluateData(const std::string& soilType, Sensor::Sen
             return "Unrecognized sensor type";
             break;
     }
-// Aggiungi la posizione alla stringa result
+// Aggiungi la posizione alla stringa result quando stampi i risultati
     result += " at position (" + std::to_string(x) + ", " + std::to_string(y) + ")";
     return result;
 }
@@ -228,10 +224,12 @@ std::string ControlCenter::evaluateAirTemperature(double value, const std::strin
     }
 }
 
+// Funzione per ottenere i risultati dell'analisi
 std::vector<std::string> ControlCenter::getAnalysisResults() const {
     return analysisResults_;
 }
 
+// Funzione per verificare se il buffer è vuoto
 bool ControlCenter::isBufferEmpty() const {
     std::lock_guard<std::mutex> lock(bufferMutex_);
     return dataBuffer_.empty();
@@ -239,11 +237,22 @@ bool ControlCenter::isBufferEmpty() const {
 
 // Funzione per notificare che la raccolta dati è completata
 void ControlCenter::notifyDataCollectionComplete() {
-    std::unique_lock<std::mutex> lock(mtx_);
+    std::unique_lock<std::mutex> lock(bufferMutex_);
     cvnotdata_.notify_all();
 }
 
+// Funzione per verificare se il control center sta analizzando i dati
 bool ControlCenter::isAnalyzing() {
-    std::unique_lock<std::mutex> lock(mtx_);
+    std::unique_lock<std::mutex> lock(bufferMutex_);
     return isanalyzing_;
+}
+
+// Funzione per impostare la flag di completamento della raccolta dati
+void ControlCenter::setDataCollectionComplete(bool status) {
+    dataCollectionComplete_ = status;
+}
+
+// Funzione per impostare la flag di completamento dell'analisi
+void ControlCenter::setAnalysisComplete(bool status) {
+    analysisComplete_ = status;
 }
