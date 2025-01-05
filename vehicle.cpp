@@ -17,7 +17,7 @@ Vehicle::Vehicle()
     battery_{100.0},
     sensors_{},
     field_{Field()},
-    isBusy_{false}
+    isBusy_{false} // All'inizio il veicolo non è impegnato
     {}
 
 // Costruttore con parametri
@@ -47,6 +47,7 @@ Vehicle::Vehicle(std::string name, int id, VehicleType type, int x, int y, doubl
             exit(EXIT_FAILURE);
         }
 
+        // La batteria è espressa in percentuale e deve essere compresa tra 0 e 100.
         if (battery <= 0 || battery > 100) {
             std::cerr << "Invalid battery: battery must be between 0 and 100%." << std::endl;
             exit(EXIT_FAILURE);
@@ -69,12 +70,13 @@ void Vehicle::setPosition(int x, int y) {
 
 // Funzione per spostare il veicolo in una posizione target: il tempo di spostamento è proporzionale alla distanza tra la posizione attuale e la posizione target e alla velocità del veicolo.
 void Vehicle::moveToTarget(int targetx, int targety) {
-    std::unique_lock<std::mutex> lock(mtx_);
+    std::unique_lock<std::mutex> lock(vehiclemutex_); // Lock per proteggere l'accesso alla variabile isBusy_: solo un thread alla volta può muovere il veicolo
     while (isBusy_) {
-        cvnotbusy_.wait(lock);
+        cvnotbusy_.wait(lock); // Attendi finché il veicolo è impegnato
     }
     isBusy_ = true;
 
+    // Controllo per verificare che la posizione target sia all'interno del campo
     if (targetx < 0 || targetx >= field_.getLength() || targety < 0 || targety >= field_.getWidth()) {
         std::cerr << "Invalid coordinates: target is out of field." << std::endl;
         isBusy_ = false;
@@ -108,7 +110,7 @@ void Vehicle::moveToTarget(int targetx, int targety) {
                 std::this_thread::sleep_for(std::chrono::duration<float>(steptime));
             }
 
-            lock.unlock(); // Rilascia il lock durante la ricarica
+            lock.unlock(); // Rilascia il lock durante la ricarica, in modo da consentire altre operazioni
             rechargeBattery(); // Ricarica la batteria
             lock.lock(); // Riacquisisce il lock dopo la ricarica
 
@@ -116,7 +118,7 @@ void Vehicle::moveToTarget(int targetx, int targety) {
         }
 
         // Movimento verso il target
-        drainBattery(1.0);
+        drainBattery(5); // Consuma 5% di batteria per ogni spostamento
         if (x_ < targetx) {
         ++x_;}
         else if (x_ > targetx) {
@@ -136,7 +138,7 @@ void Vehicle::moveToTarget(int targetx, int targety) {
     std::cout << "Vehicle " << name_ << " reached target at position (" << x_ << ", " << y_ << ")" << std::endl;
 
     isBusy_ = false;
-    cvnotbusy_.notify_one();
+    cvnotbusy_.notify_one(); // Notifica che il veicolo non è più impegnato e può essere utilizzato da altri thread
 }
 
 // Funzione per leggere i dati dalla cella corrente: i dati sono passati ai sensori e stampati a video.
@@ -169,14 +171,14 @@ void Vehicle::readDataFromCurrentCell() const {
 
 // Funzione per la lettura reale dei dati sul campo e l'invio al control center per la futura analisi.
 void Vehicle::readAndSendData(ControlCenter& controlCenter) {
-    std::unique_lock<std::mutex> lock(mtx_);
+    std::unique_lock<std::mutex> lock(vehiclemutex_);
     while (isBusy_) {
         cvnotbusy_.wait(lock);
     }
     isBusy_ = true;
 
-    int xToBeRead = x_;
-    int yToBeRead = y_;
+    int xToBeRead {x_};
+    int yToBeRead {y_};
 
     while (battery_ <= 10.0) {
         std::cout << "Low battery. Returning to base for recharge..." << std::endl;
@@ -193,14 +195,14 @@ void Vehicle::readAndSendData(ControlCenter& controlCenter) {
             std::this_thread::sleep_for(std::chrono::duration<float>(1.0 / speed_));
         }
 
-        lock.unlock(); // Rilascia il lock durante la ricarica
+        lock.unlock(); // Rilascia il lock durante la ricarica 
         rechargeBattery(); // Ricarica la batteria
         lock.lock(); // Riacquisisce il lock dopo la ricarica
 
         std::cout << "Resuming data collection at (" << xToBeRead << ", " << yToBeRead << ")" << std::endl;
     }
-
-    drainBattery(5.0);
+    // Consuma il 15% della batteria per la lettura dei dati
+    drainBattery(15.0);
 
     Soil soil;
     if (!field_.getSoil(xToBeRead, yToBeRead, soil)) {
