@@ -1,0 +1,22 @@
+cmake_minimum_required(VERSION 3.10)
+
+# Aggiungi il percorso relativo ai file principali
+include_directories(..)  # Include la cartella principale dove si trovano i file .cpp principali
+
+# Aggiungi eseguibili per ciascun file di test
+add_executable(testSoil setsoiltest.cpp ../soil.cpp)
+add_executable(testField createafieldtest.cpp ../soil.cpp ../field.cpp ../sensor.cpp)
+add_executable(testVehicle vehiclemovementtest.cpp ../soil.cpp ../field.cpp ../vehicle.cpp ../sensor.cpp ../controlcenter.cpp)
+add_executable(testControlCenter controlcentertest.cpp ../soil.cpp ../field.cpp ../vehicle.cpp ../sensor.cpp ../controlcenter.cpp)
+
+# Trova i thread e linkali
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+
+# Linka i thread per ogni eseguibile
+target_link_libraries(testSoil PRIVATE Threads::Threads)
+target_link_libraries(testField PRIVATE Threads::Threads)
+target_link_libraries(testVehicle PRIVATE Threads::Threads)
+target_link_libraries(testControlCenter PRIVATE Threads::Threads)
+
+
