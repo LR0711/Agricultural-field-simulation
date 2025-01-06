@@ -18,16 +18,16 @@ Il progetto implementa anche concetti di programmazione concorrente, simulando l
 
 ### Istruzioni per l'uso
 
-Un tutorial dettagliato sul funzionamento del programma è disponibile. La descrizione delle funzionalità e del flusso del programma è contenuta nei file `.cpp` inclusi nel progetto.
+Un tutorial sul funzionamento teorico del programma è qui disponibile. La descrizione delle funzionalità e del flusso del programma è contenuta nei file `.cpp` inclusi nel progetto.
 
 ## Costruzione del campo agricolo simulato
 
 Il campo agricolo simulato è costruito utilizzando una matrice di dimensione `length * width`, dove ogni elemento rappresenta un punto del campo. Ogni punto è rappresentato da un oggetto di tipo `Soil`, definito da una classe che include le proprietà fisiche del terreno, come:
 
-- **Tipo di terreno**: Può essere di quattro tipi: clay, sand, loam, silt.
-- **Temperatura del suolo e dell'aria**: Questi parametri possono variare in base alla posizione nel campo (ad esempio, alcune zone potrebbero essere in ombra mentre altre al sole).
+- **Tipo di terreno**: Può essere di quattro tipi: clay, sand, loam, silt. Il tipo di terreno influenza, attraverso due apposite funzioni, la temperatura del suolo a parità di condizioni atmosferiche e il risultato delle analisi compiute (terreni diversi hanno valori ottimali e/o accettabili diversi dei vari parametri).
+- **Temperatura del suolo e dell'aria**: Questi parametri possono variare in base alla posizione nel campo (ad esempio, alcune zone potrebbero essere in ombra mentre altre al sole). Solo il secodono è impostabile dall'utente, mentre il primo è direttamente calcolato dal programma.
 - **Umidità del suolo e dell'aria**: Parametri che variano in base alla zona del campo.
-- **Presenza di colture**: Indica se in quella zona ci sono coltivazioni (variabile booleana `hasPlants`).
+- **Presenza di colture**: Indica se in quella zona ci sono coltivazioni (variabile booleana `hasPlants`). Tale flag indica le celle di maggior interesse per l'analisi.
 
 L'utente può configurare le proprietà fisiche del campo utilizzando apposite funzioni di set, sia inserendo un elemento soil in specifiche aree del campo, sia modificando solo proprietà specifiche. Ad esempio, è possibile modificare il tipo di suolo, l'umidità e la temperatura del suolo in aree specifiche del campo. La temperatura del suolo viene calcolata automaticamente in base al tipo di terreno.
 
@@ -35,8 +35,8 @@ Inoltre, l'utente può modificare la dimensione del campo e visualizzare i dati 
 
 ### Funzioni principali del campo agricolo simulato
 
-- **setSoil**: Permette di impostare il tipo di suolo in un'area specifica della matrice.
-- **modifySoilProperty**: Permette di modificare le proprietà fisiche del terreno, inclusi tipo di suolo e presenza di colture.
+- **setSoil**: Permette di impostare il tipo di suolo in un'area specifica della matrice, comprensivo di tutti i dati
+- **modifySoilProperty**: Permette di modificare una sola delle proprietà fisiche del terreno, inclusi tipo di suolo e presenza di colture.
 - **changeFieldname**: Cambia il nome del campo.
 - **changeDimensions**: Cambia le dimensioni del campo.
 - **getSoilTypes**: Restituisce il tipo di suolo in un'area specifica del campo.
@@ -46,7 +46,7 @@ Inoltre, l'utente può modificare la dimensione del campo e visualizzare i dati 
 
 ### Limiti attuali
 
-Attualmente, il campo agricolo è in condizioni statiche, e i parametri fisici sono hardcoded. Le condizioni del campo non cambiano dinamicamente.
+Attualmente, il campo agricolo è in condizioni statiche, e i parametri fisici sono hardcoded. Le condizioni del campo non cambiano dinamicamente. Ciò non rende per forza la simulazione meno realistica (può simulare bene lo stato del campo in un esatto istante di tempo) ma limita analisi dinamiche.
 
 ## Interazione ambiente agricolo utente
 
@@ -59,6 +59,9 @@ L'utente può interagire con l'ambiente agricolo costruito mediante unità auton
 - **readDataFromCurrentCell**: Legge i dati dalla cella corrente, in base ai sensori a disposizione, e li stampa immediatamente a video (si usa più per questioni di testing).
 - **readAndSendData**: Legge i dati sul campo e li invia al centro di controllo per ulteriori analisi.
 
+Le funzioni di movimento e di spedizione dei dati includono al loro interno una logica rudimentale di scarica della batteria, che impone una quota (fissabile dall'utente ma costante per ogni operazione) di scarica della stessa, imponendo un ritorno alla base per una ricarica completa nel caso di raggiungimento di un valore di soglia minima. A tal fine, sono presenti anche due funzioni rudimentali di carica e scarica della batteria. Tali operazioni sono regolate nel funzionamento mediante specifici lock ed unlock delle operazioni al fine di prevenire deadlock che bloccavano il programma in una condizione perenne di attesa dati senza che il veicolo potesse più muoversi dopo la ricarica(emerse in fase di testing senza una apposita gestione del lock ed unlock del mutex).
+
+
 ## Centro di controllo
 
 Il centro di controllo, rappresentato dalla classe `ControlCenter`, gestisce la movimentazione dei veicoli e raccoglie i dati dai sensori per fornire analisi sullo stato del campo.
@@ -69,7 +72,9 @@ Il centro di controllo, rappresentato dalla classe `ControlCenter`, gestisce la 
 - **getVehiclePosition**: Ottiene la posizione di un veicolo.
 - **commandDataRead**: Invia un comando di lettura dei dati a un veicolo.
 - **appendData**: Aggiunge i dati al buffer del centro di controllo.
-- **analyzeData**: Analizza i dati del buffer.
+- **analyzeData**: Analizza i dati del buffer, restituendo all'utente eventuali parametri critici sul campo comprensivi di coordinate in cui si sono ottenuti.
+
+Sono inoltre presenti varie funzioni di flag o di notifica sullo stato del buffer, introdotti in una seconda versione del progetto ed utili nell'ambito della programmazione concorrente.
 
 ## Sensori
 
@@ -81,7 +86,7 @@ I sensori, rappresentati dalla classe `Sensor`, sono utilizzati per raccogliere 
 - **readMoisture**: Legge l'umidità del suolo.
 - **readHumidity**: Legge l'umidità dell'aria.
 
-Allo stato attuale del progetto i sensori leggono il valore esatto delle celle nel campo. Un'idea per rendere il loro funzionamento più verosimile è quello di aggiungere un rumore alle misure dei sensori stessi.
+In una prima versione del progetto si è pensato ad una lettura perfetta dei dati della cella. In quest'ultima versione è stato aggiunto al valore esatto un valore randomico di rumore (a simulare la precisione del sensore), di modo da aumentare il realismo della simulazione.
 
 ## Programmazione concorrente
 
@@ -90,60 +95,110 @@ Il progetto utilizza la programmazione concorrente per gestire le operazioni sim
 ### Concetti chiave
 
 - **Thread**: Ogni veicolo e il centro di controllo operano su thread separati per eseguire le loro operazioni simultaneamente.
+Ciò consente una migliore efficienza del programma.
 - **Mutex**: Utilizzati per proteggere l'accesso alle risorse condivise, come la mappa delle posizioni dei veicoli e il buffer dei dati nel centro di controllo.
-- **Condition Variables**: Utilizzate per sincronizzare le operazioni tra i thread, ad esempio, per notificare al centro di controllo quando ci sono nuovi dati disponibili nel buffer.
+- **Condition Variables**: Utilizzate per sincronizzare le operazioni tra i thread. Prendendo come esempio il control center, permettono ad esempio ad esso la notifica di quando ci sono nuovi dati disponibili nel buffer.
 
 ### Esempi di utilizzo
 
 - **Movimentazione dei veicoli**: Ogni veicolo utilizza un thread separato per muoversi nel campo. L'accesso alla mappa delle posizioni dei veicoli è protetto da un mutex per evitare condizioni di gara.
     ```cpp
     void ControlCenter::sendMovementCommandToVehicle(Vehicle& vehicle, int x, int y) {
-        vehicle.moveToTarget(x, y);
-        std::unique_lock<std::mutex> lock(mtx_); // Protegge l'aggiornamento della mappa
-        vehiclepositions_[vehicle.getId()] = {vehicle.getX(), vehicle.getY()};
-    }
+    std::unique_lock<std::mutex> lock(vehiclepositionmutex_); // Lock per proteggere l'accesso alla mappa delle posizioni dei veicoli
+    cellfreecv_.wait(lock, [this, x, y] { 
+        for (const auto& pos : vehiclepositions_) {
+            if (pos.second.first == x && pos.second.second == y) {
+                return false;
+            }
+        }
+        return true;
+    }); 
+    vehiclepositions_[vehicle.getId()] = {x, y}; 
+    lock.unlock(); 
     ```
 
 - **Lettura e analisi dei dati**: Il centro di controllo utilizza un thread per analizzare i dati raccolti dai veicoli. L'accesso al buffer dei dati è protetto da un mutex e sincronizzato con una condition variable.
     ```cpp
     void ControlCenter::analyzeData() {
-        std::unique_lock<std::mutex> lock(mtx_);
-        while (databuffer_.empty() || isanalyzing_) {
-            cvnotdata_.wait(lock);
+    std::cout << "Debug: Buffer size before analysis: " << databuffer_.size() << std::endl;
+    std::unique_lock<std::mutex> lock(bufferMutex_); // Protegge l'accesso al buffer su cui agisce sia il control center che i veicoli
+    // Debug iniziale
+    std::cout << "Debug (analyzeData): Entrando in wait, activevehicles_ = " 
+              << activevehicles_ 
+              << ", dataCollectionComplete_ = " << dataCollectionComplete_ 
+              << ", databuffer_.empty() = " << databuffer_.empty() 
+              << std::endl;
+    // Finché ci sono dati nel buffer o la raccolta dati non è completata, il control center analizza i dati
+    while (true) { 
+        cvnotdata_.wait(lock, [this] {
+        // Debug dentro la lambda
+        std::cout << "Debug (wait lambda): activevehicles_ = " 
+                  << activevehicles_
+                  << ", dataCollectionComplete_ = " << dataCollectionComplete_
+                  << ", databuffer_.empty() = " << databuffer_.empty() 
+                  << std::endl;
+             return !databuffer_.empty() || dataCollectionComplete_; }); // Attendi finché non ci sono dati nel buffer o la raccolta dati non è completata
+        std::cout << "Debug (analyzeData): Uscito da wait, databuffer_.empty() = " 
+              << databuffer_.empty() 
+              << std::endl;
+        if (databuffer_.empty() && dataCollectionComplete_) { 
+            break; 
         }
-        isanalyzing_ = true;
+        std::cout << "Debug: Analyzing data..." << std::endl;
+        isanalyzing_ = true; // Tale booleano indica che il control center sta analizzando i dati
 
         auto dataBatch = databuffer_.front();
         databuffer_.pop();
         lock.unlock();
 
         // Simula il tempo di analisi
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        std::this_thread::sleep_for(std::chrono::seconds(5));
 
         // Analisi del dato
         std::map<Sensor::SensorType, double> dataMap;
         for (const auto& data : dataBatch) {
-            dataMap[data.type] = data.data;
+            dataMap[data.type] += data.data;
         }
 
-        int x {dataBatch[0].x};
-        int y {dataBatch[0].y};
+        int x{dataBatch[0].x};
+        int y{dataBatch[0].y};
+        std::cout << "Debug: Analyzing data for cell (" << x << ", " << y << ")" << std::endl;
+        // Dalle coordinate del veicolo, si ottiene il tipo di suolo e si verifica la presenza di piante
         Soil AnalyzedSoil;
         field_.getSoil(x, y, AnalyzedSoil);
-
-        bool hasPlants = AnalyzedSoil.getPlants();
+        bool hasPlants{AnalyzedSoil.getPlants()};
         std::string soilType = AnalyzedSoil.soilTypeToString(AnalyzedSoil.getSoilType());
-        std::cout << "Analyzing data for cell (" << x << ", " << y << "):" << std::endl;
-        for (const auto& entry : dataMap) {
-            std::cout << "  " << Sensor::sensorTypeToString(entry.first) << ": " << entry.second << std::endl;
+
+        std::cout << "Debug: Soil has plants: " << (hasPlants ? "Yes" : "No") << std::endl;
+
+        std::vector<std::string> analysisResults;
+        // Se ci sono piante, si procede con l'analisi, altrimenti questa non è necessaria
+        if (hasPlants) {
+            std::cout << "Plants detected, proceeding with analysis." << std::endl;
+            for (const auto& sensorData : dataMap) {
+                std::string result = evaluateData(soilType, sensorData.first, sensorData.second, x, y);
+                std::cout << "  " << Sensor::sensorTypeToString(sensorData.first) << ": " << sensorData.second << " (" << result << ")" << std::endl;
+                analysisResults.push_back(result);
+            }
+        } else {
+            std::cout << "No plants in this area. No need for analysis." << std::endl;
         }
+
+        lock.lock(); // Riacquisisce il lock per scrivere
+        analysisResults_.insert(analysisResults_.end(), analysisResults.begin(), analysisResults.end());
     }
+
+    isanalyzing_ = false;
+    cvnotdata_.notify_all(); // Notifica che l'analisi è completata e che il buffer è vuoto
+    std::cout << "Debug: Analysis complete for current buffer." << std::endl;
+}
+
     ```
 
 ### Vantaggi della programmazione concorrente
 
-- **Efficienza**: Permette di eseguire operazioni simultanee, migliorando l'efficienza del sistema.
-- **Reattività**: I veicoli possono muoversi e raccogliere dati mentre il centro di controllo analizza i dati precedentemente raccolti.
+- **Efficienza**: Permette di eseguire operazioni simultanee, migliorando l'efficienza del sistema. Permette l'utilizzo di più veicoli sul campo per paralellizzare le operazioni di analisi. Permette in parallelo operazioni di scrittura sul buffer e di analisi dei dati precedentemente raccolti.
+- **Reattività**: I veicoli possono muoversi e raccogliere dati mentre il centro di controllo analizza i dati precedentemente raccolti. 
 - **Scalabilità**: Facilita l'aggiunta di nuovi veicoli e sensori senza compromettere le prestazioni del sistema.
 
 
