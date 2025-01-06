@@ -5,10 +5,10 @@
 void testVehicleMovement()
 {
     Field field("TestField", 10, 10);
-    Vehicle robot("TestVehicle", Vehicle::VehicleType::FieldVehicle, 0, 0, 1.0, 100.0, {Sensor::SensorType::SoilTemperatureSensor, Sensor::SensorType::MoistureSensor, Sensor::SensorType::AirTemperatureSensor }, field);
+    Vehicle robot("TestVehicle", 10000, Vehicle::VehicleType::FieldVehicle, 0, 0, 1.0, 100.0, {Sensor::SensorType::SoilTemperatureSensor, Sensor::SensorType::MoistureSensor, Sensor::SensorType::AirTemperatureSensor }, field);
     robot.setPosition(5, 5);
     robot.moveToTarget(9, 7);
-    Vehicle drone("TestDrone", Vehicle::VehicleType::AerialVehicle, 0, 0, 2.0, 100.0, {}, field);
+    Vehicle drone("TestDrone", 10001, Vehicle::VehicleType::AerialVehicle, 0, 0, 2.0, 100.0, {}, field);
     drone.setPosition(2, 9);
     drone. moveToTarget(9, 2);
     robot.readDataFromCurrentCell();
