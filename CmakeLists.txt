@@ -1,0 +1,14 @@
+cmake_minimum_required(VERSION 3.10)
+
+include_directories(..)
+
+# Set the project name
+project(FieldProgram)
+
+# Add executable
+add_executable(fieldprogram main.cpp vehicle.cpp controlcenter.cpp sensor.cpp soil.cpp field.cpp)
+
+# Trova i thread e linkali
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(fieldprogram PRIVATE Threads::Threads pthread)
