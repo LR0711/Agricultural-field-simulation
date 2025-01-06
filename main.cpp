@@ -20,6 +20,7 @@
 #include <mutex>
 
 
+
 void vehicleTask(Vehicle& vehicle, ControlCenter& controlCenter, const std::vector<std::pair<int, int>>& plantPositions) {
     for (const auto& pos : plantPositions) {
         std::cout << "Debug: Plant position (" << pos.first << ", " << pos.second << ")" << std::endl;
@@ -57,10 +58,14 @@ int main() {
         Sensor(Sensor::SensorType::MoistureSensor),
         Sensor(Sensor::SensorType::HumiditySensor)
     };
-    Vehicle vehicle("Veicolo1", 10000, Vehicle::VehicleType::FieldVehicle, 2, 3, 1.0, 100.0, sensors, field);
+    
+    // Creazione di due veicoli
+    Vehicle vehicle("Veicolo1", 10000, Vehicle::VehicleType::FieldVehicle, 2, 2, 1.0, 100.0, sensors, field);
+    Vehicle vehicle2("Veicolo2", 10001, Vehicle::VehicleType::FieldVehicle, 3, 3, 1.2, 100.0, sensors, field);
 
-    // Creazione del centro di controllo
+    // Creazione del centro di controllo, a cui viene passato il campo e impostato il numero di veicoli attivi
     ControlCenter controlCenter(field);
+    controlCenter.setActiveVehicles(2);
 
     // Aggiunta di piante in alcune aree del campo
     field.modifySoilProperty(0, 2, 1, 3, [](Soil& soil) { soil.setPlants(true); });
@@ -73,35 +78,52 @@ int main() {
     field.modifySoilProperty(3, 4, 0, 1, [](Soil& soil) { soil.setSoilType(Soil::SoilType::clay); });
     field.modifySoilProperty(0, 1, 2, 3, [](Soil& soil) { soil.setSoilType(Soil::SoilType::sand); });
     field.modifySoilProperty(3, 4, 2, 3, [](Soil& soil) { soil.setSoilType(Soil::SoilType::loam); });
+    // Creazione di un suolo con tipo di suolo, presenza di piante, umidità del suolo, temperatura dell'aria e umidità dell'aria
+    Soil soil(Soil::SoilType::silt, true, 13.0, 12.0, 61.0);
+    // Modifica del suolo in una specifica posizione del campo
+    field.changeDimensions(10, 10);
+    field.setSoil(soil, 6, 8, 6, 9);
+    // Stampa a video dei tipi di suolo presenti nel campo
+    field.printPlantPresence();
+
+
 
 
     // Acquisizione delle posizioni delle piante
     std::vector<std::pair<int, int>> plantPositions;
-    for (int i = 0; i < 5; ++i) {
-        for (int j = 0; j < 4; ++j) {
+    for (int i = 0; i < 10; ++i) {
+        for (int j = 0; j < 10; ++j) {
             if (field.getPlants(i, i, j, j)[0][0]) {
                 plantPositions.emplace_back(i, j);
             }
         }
     }
 
-        // Creazione dei thread
-    std::thread vehicleThread(vehicleTask, std::ref(vehicle), std::ref(controlCenter), plantPositions);
+// Suddivisione delle posizioni delle piante tra i due veicoli
+std::vector<std::pair<int, int>> plantPositions1(plantPositions.begin(), plantPositions.begin() + plantPositions.size() / 2);
+std::vector<std::pair<int, int>> plantPositions2(plantPositions.begin() + plantPositions.size() / 2, plantPositions.end());
+
+
+    // Creazione dei thread
+    std::thread vehicle1Thread(vehicleTask, std::ref(vehicle), std::ref(controlCenter), plantPositions1);
+    std::thread vehicle2Thread(vehicleTask, std::ref(vehicle2), std::ref(controlCenter), plantPositions2);
+
     std::thread controlCenterThread(controlCenterTask, std::ref(controlCenter));
 
     // Attesa del completamento del thread del veicolo
-    vehicleThread.join();
+    vehicle1Thread.join();
+    vehicle2Thread.join();
 
     // Aspetta che il centro di controllo termini l'analisi
-    controlCenterThread.join(); // Ora non servono più cicli di attesa
+    controlCenterThread.join(); 
 
-    // Stampa dei risultati dell'analisi
+    // Stampa dei risultati dell'analisi in un file di testo consultabile dall'utente
     std::ofstream outFile("analysis_results.txt");
     for (const auto& result : controlCenter.getAnalysisResults()) {
         outFile << result << std::endl;
     }
     outFile.close();
-
+    // Stampa a video il messaggio di completamento
     std::cout << "Exiting from Main Thread" << std::endl;
     return 0;
 }
