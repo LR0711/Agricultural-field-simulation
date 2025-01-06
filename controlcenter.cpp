@@ -13,9 +13,25 @@ ControlCenter::ControlCenter(const Field& field)
 
 // Funzione per inviare un comando di movimento a un veicolo
 void ControlCenter::sendMovementCommandToVehicle(Vehicle& vehicle, int x, int y) {
+    std::unique_lock<std::mutex> lock(vehiclepositionmutex_); // Lock per proteggere l'accesso alla mappa delle posizioni dei veicoli
+    cellfreecv_.wait(lock, [this, x, y] { 
+        for (const auto& pos : vehiclepositions_) {
+            if (pos.second.first == x && pos.second.second == y) {
+                return false;
+            }
+        }
+        return true;
+    }); 
+    vehiclepositions_[vehicle.getId()] = {x, y}; 
+    lock.unlock(); 
+
     vehicle.moveToTarget(x, y);
-    vehiclepositions_[vehicle.getId()] = {vehicle.getX(), vehicle.getY()}; // Aggiorna la posizione del veicolo nel control center
+
+    lock.lock(); 
+    vehiclepositions_[vehicle.getId()] = {vehicle.getX(), vehicle.getY()}; // modified
+    cellfreecv_.notify_all(); 
 }
+
 
 // Funzione per inviare un comando di lettura dei dati a un veicolo
 void ControlCenter::commandDataRead(Vehicle& vehicle) {
@@ -34,10 +50,25 @@ void ControlCenter::appendData(const std::vector<SoilData>& dataBatch) {
 void ControlCenter::analyzeData() {
     std::cout << "Debug: Buffer size before analysis: " << databuffer_.size() << std::endl;
     std::unique_lock<std::mutex> lock(bufferMutex_); // Protegge l'accesso al buffer su cui agisce sia il control center che i veicoli
+    // Debug iniziale
+    std::cout << "Debug (analyzeData): Entrando in wait, activevehicles_ = " 
+              << activevehicles_ 
+              << ", dataCollectionComplete_ = " << dataCollectionComplete_ 
+              << ", databuffer_.empty() = " << databuffer_.empty() 
+              << std::endl;
     // Finché ci sono dati nel buffer o la raccolta dati non è completata, il control center analizza i dati
     while (true) { 
-        cvnotdata_.wait(lock, [this] { return !databuffer_.empty() || dataCollectionComplete_; }); // Attendi finché non ci sono dati nel buffer o la raccolta dati non è completata
-
+        cvnotdata_.wait(lock, [this] {
+        // Debug dentro la lambda
+        std::cout << "Debug (wait lambda): activevehicles_ = " 
+                  << activevehicles_
+                  << ", dataCollectionComplete_ = " << dataCollectionComplete_
+                  << ", databuffer_.empty() = " << databuffer_.empty() 
+                  << std::endl;
+             return !databuffer_.empty() || dataCollectionComplete_; }); // Attendi finché non ci sono dati nel buffer o la raccolta dati non è completata
+        std::cout << "Debug (analyzeData): Uscito da wait, databuffer_.empty() = " 
+              << databuffer_.empty() 
+              << std::endl;
         if (databuffer_.empty() && dataCollectionComplete_) { 
             break; 
         }
@@ -230,7 +261,7 @@ std::vector<std::string> ControlCenter::getAnalysisResults() const {
 }
 
 // Funzione per verificare se il buffer è vuoto
-bool ControlCenter::isBufferEmpty() const {
+bool ControlCenter::isBufferEmpty() {
     std::lock_guard<std::mutex> lock(bufferMutex_);
     return dataBuffer_.empty();
 }
@@ -249,10 +280,29 @@ bool ControlCenter::isAnalyzing() {
 
 // Funzione per impostare la flag di completamento della raccolta dati
 void ControlCenter::setDataCollectionComplete(bool status) {
-    dataCollectionComplete_ = status;
+    std::unique_lock<std::mutex> lock(bufferMutex_);
+    if (status) {
+        if (activevehicles_ > 0) { // Verifica che activevehicles_ non diventi negativo
+            --activevehicles_;
+        }
+    } else {
+        ++activevehicles_;
+    }
+    dataCollectionComplete_ = (activevehicles_ == 0);
+    // Messaggio di debug
+    std::cout << "Debug (setDataCollectionComplete): activevehicles_ = " 
+              << activevehicles_ 
+              << ", dataCollectionComplete_ = " << dataCollectionComplete_ 
+              << std::endl;
+    // Notifica tutti i thread in attesa che qualcosa è cambiato
+    cvnotdata_.notify_all();
 }
 
 // Funzione per impostare la flag di completamento dell'analisi
 void ControlCenter::setAnalysisComplete(bool status) {
     analysisComplete_ = status;
+}
+
+void ControlCenter::setActiveVehicles(int activevehicles) {
+    activevehicles_ = activevehicles;
 }
