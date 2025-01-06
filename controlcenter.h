@@ -36,28 +36,31 @@ class ControlCenter {
         void appendData(const std::vector<SoilData>& dataBatch);
         void analyzeData();
         std::vector<std::string> getAnalysisResults() const;
-        bool isBufferEmpty() const;
+        bool isBufferEmpty();
         void notifyDataCollectionComplete();
         bool isAnalyzing();
         bool isDataCollectionComplete() const { return dataCollectionComplete_; }
         void setDataCollectionComplete(bool status);
         bool isAnalysisComplete() const { return analysisComplete_; }
         void setAnalysisComplete(bool status);
+        void setActiveVehicles(int activevehicles);
 
     private:
         const Field& field_;
         std::map<int, std::pair<int, int>> vehiclepositions_;
         std::queue<vector<SoilData>> databuffer_;
-        std::mutex mtx_;
+        std::mutex bufferMutex_;
+        std::mutex vehiclepositionmutex_;
         std::condition_variable cvnotdata_;
-        std::vector <std::string> dataBuffer_;
+        std::condition_variable cellfreecv_;
+        std::vector<std::string> dataBuffer_;
         std::vector<std::string> analysisResults_;
         std::string evaluateData(const std::string& soilType, Sensor::SensorType sensorType, double value, int x, int y);
         std::string evaluateSoilMoisture(double value, const std::string& soilType);
         std::string evaluateSoilTemperature(double value, const std::string& soilType);
         std::string evaluateAirTemperature(double value, const std::string& soilType);
         std::string evaluateAirHumidity(double value, const std::string& soilType);
-        mutable std::mutex bufferMutex_;
+        int activevehicles_;
         bool isanalyzing_ = false;
         bool dataCollectionComplete_ = false;
         bool analysisComplete_ = false;
